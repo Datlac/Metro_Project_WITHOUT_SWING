@@ -40,4 +40,33 @@ public class Customer extends Person {
     }
 
     public String getCustomerId() { return customerId; }
+
+	public double getWalletBalance() {
+		return walletBalance;
+	}
+
+	public void setWalletBalance(double walletBalance) {
+		this.walletBalance = walletBalance;
+	}
+
+	public CustomerType getType() {
+		return type;
+	}
+
+	public void setType(CustomerType type) {
+		this.type = type;
+	}
+
+	public List<Ticket> getTicketHistory() {
+		return ticketHistory;
+	}
+
+	public void setTicketHistory(List<Ticket> ticketHistory) {
+		this.ticketHistory = ticketHistory;
+	}
+
+	public void setCustomerId(String customerId) {
+		this.customerId = customerId;
+	}
+    
 }
