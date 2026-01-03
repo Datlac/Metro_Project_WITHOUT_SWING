@@ -7,111 +7,108 @@ import java.util.Map;
 
 public class FareCalculator {
 
-    // Bảng giá vé lượt theo khoảng cách Zone (Diff = |EndZone - StartZone|)
-    // Index 0 (Diff 0): 6k (Nội vùng)
-    // Index 7 (Diff 7): 19k (Zone 1 -> Zone 8)
+    // Bảng giá vé lượt theo khoảng cách Zone
     private static final double[] ZONE_PRICES = {
         6000.0, 8000.0, 9000.0, 11000.0, 13000.0, 15000.0, 17000.0, 19000.0
     };
     
-    // GIÁ VÉ ĐỊNH KỲ
+    // Giá vé định kỳ
     public static final double PRICE_1_DAY_PASS = 40000.0;
     public static final double PRICE_3_DAY_PASS = 90000.0;
     public static final double PRICE_MONTHLY_NORMAL = 200000.0;
     public static final double PRICE_MONTHLY_STUDENT = 150000.0;
 
-    // Map lưu Zone, Key sẽ được chuẩn hóa về LowerCase để tránh lỗi so sánh
     private static final Map<String, Integer> stationZones = new HashMap<>();
 
     static {
-        // Khởi tạo Zone và chuẩn hóa tên trạm (trim + lowercase)
-        addZone("Ben Thanh", 1);
-        addZone("Nha Hat TP", 1);
-        addZone("Ba Son", 1);
-        addZone("Van Thanh", 1);
-        addZone("Tan Cang", 1);
-        addZone("Thao Dien", 1);
-        addZone("An Phu", 1);
+        // --- 1. CÁC GA METRO (S01 - S14) ---
+        addZone("Ga Ben Thanh", 1);
+        addZone("Ga Nha Hat TP", 1);
+        addZone("Ga Ba Son", 1);
+        addZone("Ga Van Thanh", 1);
+        addZone("Ga Tan Cang", 1);
+        addZone("Ga Thao Dien", 1);
+        addZone("Ga An Phu", 1);
+        addZone("Ga Rach Chiec", 2);
+        addZone("Ga Phuoc Long", 3);
+        addZone("Ga Binh Thai", 4);
+        addZone("Ga Thu Duc", 5);
+        addZone("Ga Khu Cong Nghe Cao", 6);
+        addZone("Ga Dai Hoc Quoc Gia", 7);
+        addZone("Ga Suoi Tien", 8); // Zone 8
+
+        // --- 2. CÁC ĐỊA ĐIỂM XE BUÝT (VÉ LIÊN THÔNG) ---
+        // Quy ước: Điểm xe buýt nằm gần ga nào thì tính Zone của ga đó
         
-        addZone("Rach Chiec", 2);
-        addZone("Phuoc Long", 3);
-        addZone("Binh Thai", 4);
-        addZone("Thu Duc", 5);
-        addZone("Khu Cong Nghe Cao", 6);
-        addZone("Dai Hoc Quoc Gia", 7);
-        addZone("Ben Xe Suoi Tien", 8);
+        // ĐH Nông Lâm -> Gần Suối Tiên/ĐHQG -> Tính Zone 8
+        addZone("DH Nong Lam", 8); 
+        
+        // ĐH Sư Phạm (Q5) -> Đi Bus vào Bến Thành -> Tính Zone 1
+        addZone("DH Su Pham (Q5)", 1);
+        
+        // ĐH Sư Phạm Kỹ Thuật -> Gần Ngã 4 Thủ Đức -> Tính Zone 5
+        addZone("DH Su Pham Ky Thuat", 5);
     }
 
-    // Helper thêm zone an toàn
     private static void addZone(String name, int zone) {
+        // Lưu key dưới dạng chữ thường để dễ so sánh
         stationZones.put(name.trim().toLowerCase(), zone);
     }
 
-    /**
-     * Tính giá vé lượt (Single Ride)
-     */
     public static double calculateTripFare(String startStationName, String endStationName) {
-        // 1. Chuẩn hóa tên trạm đầu vào (Lấy phần tên sau dấu "-", cắt khoảng trắng, chuyển thường)
         String start = cleanStationName(startStationName);
         String end = cleanStationName(endStationName);
 
-        // 2. Kiểm tra tồn tại
-        if (!stationZones.containsKey(start)) {
-            System.err.println("[FareCalculator] Cảnh báo: Không tìm thấy trạm '" + start + "' trong bảng giá -> Tính giá mặc định.");
-            return 6000.0;
-        }
-        if (!stationZones.containsKey(end)) {
-            System.err.println("[FareCalculator] Cảnh báo: Không tìm thấy trạm '" + end + "' trong bảng giá -> Tính giá mặc định.");
-            return 6000.0;
+        // Debug: In ra để kiểm tra nếu hệ thống không nhận diện được trạm
+        // System.out.println("Checking fare: " + start + " to " + end);
+
+        if (!stationZones.containsKey(start) || !stationZones.containsKey(end)) {
+            // Nếu là địa điểm lạ chưa có trong Zone, tính giá mặc định thấp nhất
+            return 6000.0; 
         }
 
-        // 3. Lấy Zone và tính toán
         int startZone = stationZones.get(start);
         int endZone = stationZones.get(end);
-        
-        // Tính chênh lệch Zone (Trị tuyệt đối)
         int zoneDiff = Math.abs(endZone - startZone);
 
-        // Đảm bảo không vượt quá bảng giá (Max diff là 7)
         if (zoneDiff >= ZONE_PRICES.length) {
             zoneDiff = ZONE_PRICES.length - 1;
         }
 
-        double price = ZONE_PRICES[zoneDiff];
-        
-        // Debug log (giúp bạn kiểm tra xem nó đang tính đúng không)
-        // System.out.println("Trip: " + start + " (Z" + startZone + ") -> " + end + " (Z" + endZone + ") | Diff: " + zoneDiff + " | Price: " + price);
-        
-        return price;
+        return ZONE_PRICES[zoneDiff];
     }
     
-    // Tính giá vé định kỳ
     public static double calculatePassPrice(TicketType type, CustomerType customerType) {
         switch (type) {
-            case DAYPASS:
-                return PRICE_1_DAY_PASS; 
-            case THREEDAYPASS:
-                return PRICE_3_DAY_PASS;
-            case MONTHLYPASS:
-                return (customerType == CustomerType.STUDENT) ? PRICE_MONTHLY_STUDENT : PRICE_MONTHLY_NORMAL;
-            default:
-                return 0;
+            case DAYPASS: return PRICE_1_DAY_PASS;
+            case THREEDAYPASS: return PRICE_3_DAY_PASS;
+            case MONTHLYPASS: return (customerType == CustomerType.STUDENT) ? PRICE_MONTHLY_STUDENT : PRICE_MONTHLY_NORMAL;
+            default: return 0;
         }
     }
 
-    // Hàm làm sạch tên trạm: "S14 - Ben Xe Suoi Tien" -> "ben xe suoi tien"
+    // Làm sạch chuỗi: "LOC-NL - DH Nong Lam" -> "dh nong lam"
     private static String cleanStationName(String rawName) {
         if (rawName == null) return "";
-        
         String cleaned = rawName;
-        // Nếu có dấu gạch ngang (định dạng từ ComboBox), lấy phần sau
         if (rawName.contains(" - ")) {
             String[] parts = rawName.split(" - ");
-            if (parts.length > 1) {
-                cleaned = parts[1];
-            }
+            if (parts.length > 1) cleaned = parts[1];
         }
-        // Trim và Lowercase để so khớp chính xác với Key trong Map
-        return cleaned.trim().toLowerCase();
+        
+        // Xử lý đặc biệt cho các tên dài/viết tắt nếu cần
+        // Ví dụ: "DH Nong Lam TPHCM" -> cắt bớt "TPHCM" nếu trong map chỉ lưu "DH Nong Lam"
+        // Ở đây ta dùng contains để map linh hoạt hơn
+        String lower = cleaned.trim().toLowerCase();
+        
+        // Fix nhanh cho trường hợp tên dài ngắn không khớp
+        if (lower.contains("nong lam")) return "dh nong lam";
+        if (lower.contains("su pham (q5)")) return "dh su pham (q5)";
+        if (lower.contains("su pham ky thuat")) return "dh su pham ky thuat";
+        if (lower.contains("ben thanh")) return "ga ben thanh";
+        if (lower.contains("nha hat")) return "ga nha hat tp";
+        if (lower.contains("suoi tien") && !lower.contains("bus")) return "ga suoi tien";
+        
+        return lower;
     }
 }

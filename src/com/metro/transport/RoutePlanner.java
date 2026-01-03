@@ -6,116 +6,171 @@ import com.metro.infrastructure.Station;
 import java.util.*;
 
 public class RoutePlanner {
+    private Map<String, List<Edge>> graph = new HashMap<>();
+    private Map<String, String> stationNameMap = new HashMap<>();
 
-    // Đồ thị: Tên Trạm -> Danh sách các cạnh nối (đi đâu, mất bao lâu, tuyến nào)
-    private Map<String, List<Edge>> adjacencyList;
+    // Class kết quả trả về
+    public static class RouteResult {
+        public List<String> pathSteps;
+        public double totalMinutes;
+        public int totalTransfers; // Đếm số lần chuyển tuyến
 
-    public RoutePlanner() {
-        this.adjacencyList = new HashMap<>();
+        public RouteResult(List<String> pathSteps, double totalMinutes, int totalTransfers) {
+            this.pathSteps = pathSteps;
+            this.totalMinutes = totalMinutes;
+            this.totalTransfers = totalTransfers;
+        }
     }
 
-    /**
-     * Xây dựng đồ thị có trọng số (Thời gian)
-     */
     public void buildGraph(List<Line> lines) {
-        adjacencyList.clear();
+        graph.clear();
+        stationNameMap.clear();
 
         for (Line line : lines) {
             List<Station> stations = line.getStations();
-            if (stations.size() < 2) continue;
-
-            // Giả lập thời gian di chuyển:
-            // - Metro: Rất nhanh (2 phút/trạm)
-            // - Bus: Chậm hơn (5-10 phút/trạm tùy khoảng cách)
-            double timePerStation = line.getLineCode().startsWith("METRO") ? 2.0 : 10.0;
+            String lineCode = line.getLineCode();
+            
+            double timePerStation;
+            if (lineCode.startsWith("METRO")) {
+                timePerStation = 2.5; 
+            } else if (lineCode.equals("BUS-19")) {
+                timePerStation = 60.0; // Bus 19 đi rất lâu
+            } else {
+                timePerStation = 12.0; 
+            }
 
             for (int i = 0; i < stations.size() - 1; i++) {
-                String currentId = stations.get(i).getStationId();
-                String nextId = stations.get(i + 1).getStationId();
+                Station sU = stations.get(i);
+                Station sV = stations.get(i + 1);
+                
+                String u = sU.getStationId();
+                String v = sV.getStationId();
+                
+                stationNameMap.put(u, sU.getName());
+                stationNameMap.put(v, sV.getName());
+                
+                String forwardName = line.getLineName();
+                String backwardName = line.getLineName();
 
-                // Thêm cạnh 2 chiều (Vô hướng)
-                addEdge(currentId, nextId, timePerStation, line.getLineCode());
-                addEdge(nextId, currentId, timePerStation, line.getLineCode());
+                if (lineCode.equals("METRO-01")) {
+                    forwardName = "Metro: Ben Thanh -> Suoi Tien";
+                    backwardName = "Metro: Suoi Tien -> Ben Thanh";
+                }
+
+                addEdge(u, v, timePerStation, forwardName);
+                addEdge(v, u, timePerStation, backwardName);
             }
         }
     }
 
-    private void addEdge(String from, String to, double time, String lineCode) {
-        adjacencyList.computeIfAbsent(from, k -> new ArrayList<>()).add(new Edge(to, time, lineCode));
+    private void addEdge(String u, String v, double time, String name) {
+        graph.computeIfAbsent(u, k -> new ArrayList<>()).add(new Edge(v, time, name));
     }
 
-    /**
-     * THUẬT TOÁN DIJKSTRA: Tìm đường đi nhanh nhất
-     */
-    public List<String> findShortestPath(String startId, String endId) {
-        // Lưu thời gian ngắn nhất đến từng trạm (Mặc định là vô cực)
-        Map<String, Double> minTime = new HashMap<>();
-        // Lưu vết đường đi: Đến trạm Key từ trạm Value
-        Map<String, String> previousStation = new HashMap<>();
-        // Lưu vết tuyến xe: Đến trạm Key bằng Bus/Metro nào
-        Map<String, String> usedLine = new HashMap<>();
+    // --- THUẬT TOÁN 1: TÌM ĐƯỜNG NHANH NHẤT (THEO THỜI GIAN) ---
+    public RouteResult findFastestPath(String startId, String endId) {
+        return runDijkstra(startId, endId, true);
+    }
 
-        // Hàng đợi ưu tiên: Luôn xử lý trạm có tổng thời gian nhỏ nhất trước
-        PriorityQueue<NodeCost> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> n.cost));
+    // --- THUẬT TOÁN 2: TÌM ĐƯỜNG ÍT CHUYỂN TUYẾN NHẤT ---
+    public RouteResult findLeastTransferPath(String startId, String endId) {
+        return runDijkstra(startId, endId, false);
+    }
 
-        // Khởi tạo
-        minTime.put(startId, 0.0);
-        pq.add(new NodeCost(startId, 0.0));
+    // Hàm lõi chạy Dijkstra
+    private RouteResult runDijkstra(String startId, String endId, boolean optimizeForTime) {
+        PriorityQueue<Node> pq = new PriorityQueue<>(Comparator.comparingDouble(n -> n.cost));
+        Map<String, Double> dist = new HashMap<>();
+        Map<String, String> prevNode = new HashMap<>();
+        Map<String, String> prevLine = new HashMap<>();
+        Map<String, Double> timeAccumulator = new HashMap<>(); // Để cộng dồn thời gian thực tế
+        Map<String, Integer> transferCount = new HashMap<>();  // Để đếm số lần chuyển
+
+        dist.put(startId, 0.0);
+        timeAccumulator.put(startId, 0.0);
+        transferCount.put(startId, 0);
+        pq.add(new Node(startId, 0.0));
 
         while (!pq.isEmpty()) {
-            NodeCost current = pq.poll();
+            Node current = pq.poll();
             String u = current.id;
 
-            if (u.equals(endId)) break; // Đã đến đích
+            if (u.equals(endId)) break; 
 
-            // Nếu tìm thấy đường khác dài hơn đường hiện tại thì bỏ qua
-            if (current.cost > minTime.getOrDefault(u, Double.MAX_VALUE)) continue;
+            if (graph.containsKey(u)) {
+                for (Edge e : graph.get(u)) {
+                    String lastLine = prevLine.get(u);
+                    boolean isTransfer = lastLine != null && !lastLine.split(":")[0].equals(e.transportName.split(":")[0]);
+                    
+                    // --- LOGIC TÍNH TRỌNG SỐ (COST) ---
+                    double stepCost;
+                    double realTime = e.timeCost;
+                    
+                    if (optimizeForTime) {
+                        // Ưu tiên thời gian: Cost = Thời gian đi + Phạt chuyển tuyến (8 phút)
+                        stepCost = realTime;
+                        if (isTransfer) {
+                            stepCost += 8.0; 
+                            realTime += 8.0; // Cộng vào thời gian thực tế
+                        }
+                    } else {
+                        // Ưu tiên ít chuyển tuyến: 
+                        // Cost đi 1 trạm = 1 điểm.
+                        // Cost chuyển tuyến = 1000 điểm (Rất lớn để thuật toán né ra)
+                        stepCost = 1.0; 
+                        if (isTransfer) {
+                            stepCost += 1000.0;
+                            realTime += 8.0; // Vẫn cộng thời gian chờ vào thực tế
+                        }
+                    }
 
-            // Duyệt các trạm kề
-            if (adjacencyList.containsKey(u)) {
-                for (Edge edge : adjacencyList.get(u)) {
-                    String v = edge.targetStationId;
-                    double newDist = minTime.get(u) + edge.timeCost;
+                    double newDist = dist.get(u) + stepCost;
 
-                    // Nếu tìm thấy đường nhanh hơn đến v
-                    if (newDist < minTime.getOrDefault(v, Double.MAX_VALUE)) {
-                        minTime.put(v, newDist);
-                        previousStation.put(v, u);
-                        usedLine.put(v, edge.lineCode); // Lưu lại là đi bằng tuyến nào
-                        pq.add(new NodeCost(v, newDist));
+                    if (newDist < dist.getOrDefault(e.targetId, Double.MAX_VALUE)) {
+                        dist.put(e.targetId, newDist);
+                        // Cập nhật thời gian thực tế để hiển thị
+                        timeAccumulator.put(e.targetId, timeAccumulator.get(u) + realTime);
+                        // Cập nhật số lần chuyển tuyến
+                        int currentTransfers = transferCount.get(u);
+                        if (isTransfer) currentTransfers++;
+                        transferCount.put(e.targetId, currentTransfers);
+
+                        prevNode.put(e.targetId, u);
+                        prevLine.put(e.targetId, e.transportName);
+                        pq.add(new Node(e.targetId, newDist));
                     }
                 }
             }
         }
-
-        return reconstructPath(previousStation, usedLine, startId, endId);
+        
+        List<String> path = reconstructPath(prevNode, prevLine, endId);
+        double totalTime = timeAccumulator.getOrDefault(endId, 0.0);
+        int transfers = transferCount.getOrDefault(endId, 0);
+        
+        return new RouteResult(path, totalTime, transfers);
     }
 
-    private List<String> reconstructPath(Map<String, String> prev, Map<String, String> lines, String start, String end) {
-        List<String> path = new LinkedList<>();
+    private List<String> reconstructPath(Map<String, String> prevNode, Map<String, String> prevLine, String end) {
+        LinkedList<String> path = new LinkedList<>();
         String curr = end;
-        
-        if (!prev.containsKey(curr) && !curr.equals(start)) return path; // Không tìm thấy
+        if (!prevNode.containsKey(curr)) return path;
 
-        while (curr != null) {
-            String p = prev.get(curr);
-            String lineInfo = lines.get(curr);
-            
-            if (p != null) {
-                // Format: [Tên Tuyến] Trạm
-                path.add(0, String.format("(%s) -> %s", lineInfo, curr));
-            } else {
-                path.add(0, curr); // Điểm bắt đầu
-            }
+        while (curr != null && prevNode.containsKey(curr)) {
+            String p = prevNode.get(curr);
+            String line = prevLine.get(curr);
+            String stationName = stationNameMap.getOrDefault(curr, curr);
+            path.addFirst(" (" + line + ") -> " + curr + " - " + stationName);
             curr = p;
+        }
+        if (curr != null) {
+            String startName = stationNameMap.getOrDefault(curr, curr);
+            path.addFirst(curr + " - " + startName);
         }
         return path;
     }
 
-    // Class phụ hỗ trợ PriorityQueue
-    private static class NodeCost {
-        String id;
-        double cost;
-        public NodeCost(String id, double cost) { this.id = id; this.cost = cost; }
+    private static class Node {
+        String id; double cost;
+        Node(String id, double cost) { this.id = id; this.cost = cost; }
     }
 }

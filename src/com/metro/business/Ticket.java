@@ -3,40 +3,47 @@ package com.metro.business;
 import com.metro.enums.TicketStatus;
 import com.metro.enums.TicketType;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Ticket {
     private String ticketId;
     private double price;
     private TicketType type;
     private TicketStatus status;
-    private LocalDateTime issuedDate;
-    private LocalDateTime expiryDate; // FIELD MỚI: Hạn sử dụng
+    
+    // --- THUỘC TÍNH MỚI ---
+    private String ownerName;           // Tên khách hàng sở hữu
+    private LocalDateTime purchaseTime; // Thời gian mua (để sort)
+    private LocalDateTime expiryDate;   // Hạn sử dụng
 
-    public Ticket(String ticketId, double price, TicketType type) {
+    // Cập nhật Constructor nhận thêm ownerName
+    public Ticket(String ticketId, double price, TicketType type, String ownerName) {
         this.ticketId = ticketId;
         this.price = price;
         this.type = type;
-        this.status = TicketStatus.ACTIVE;
-        this.issuedDate = LocalDateTime.now();
+        this.ownerName = ownerName;
         
-        // Logic tính hạn sử dụng dựa trên loại vé
+        this.status = TicketStatus.ACTIVE;
+        this.purchaseTime = LocalDateTime.now(); // Lấy giờ hiện tại làm giờ mua
+        
+        // Tính hạn sử dụng
         this.expiryDate = calculateExpiryDate(type);
     }
 
     private LocalDateTime calculateExpiryDate(TicketType type) {
         switch (type) {
             case SINGLERIDE:
-                return LocalDateTime.now().plusDays(1); // Hết hạn sau 24h
+                return LocalDateTime.now().plusDays(1); // 24h
             case DAYPASS:
-                return LocalDateTime.now().withHour(23).withMinute(59).withSecond(59); // Hết hạn cuối ngày
+                return LocalDateTime.now().withHour(23).withMinute(59).withSecond(59); // Cuối ngày
             case MONTHLYPASS:
-                return LocalDateTime.now().plusMonths(1); // Hết hạn sau 1 tháng
+                return LocalDateTime.now().plusMonths(1); // 1 tháng
             default:
                 return LocalDateTime.now().plusDays(1);
         }
     }
 
-    // Task 2.2: Phương thức kiểm tra vé
+    // --- LOGIC KIỂM TRA VÉ (GIỮ NGUYÊN) ---
     public boolean isValid() {
         // 1. Check Status
         if (status != TicketStatus.ACTIVE) {
@@ -46,15 +53,14 @@ public class Ticket {
         
         // 2. Check Expiry
         if (LocalDateTime.now().isAfter(expiryDate)) {
-            this.status = TicketStatus.EXPIRED; // Cập nhật trạng thái ngay lập tức
+            this.status = TicketStatus.EXPIRED;
             System.out.println("Validating Ticket " + ticketId + ": FAILED (Expired at " + expiryDate + ")");
             return false;
         }
 
-        return true; // Vé hợp lệ
+        return true;
     }
 
-    
     public void useTicket() {
         if (!isValid()) {
             System.out.println("Không thể sử dụng vé " + ticketId + ": Vé không hợp lệ hoặc đã hết hạn!");
@@ -63,24 +69,32 @@ public class Ticket {
 
         if (type == TicketType.SINGLERIDE) {
             this.status = TicketStatus.USED;
-            System.out.println("Vé " + ticketId + " (Vé lượt) đã được sử dụng. Trạng thái: USED.");
+            System.out.println("Vé " + ticketId + " (Vé lượt) đã sử dụng.");
         } else {
-            System.out.println("Vé " + ticketId + " (" + type + ") đã quẹt. Chúc quý khách thượng lộ bình an.");
+            System.out.println("Vé " + ticketId + " (" + type + ") đã quẹt. Mời qua cổng.");
         }
     }
-    // Getters & Setters
+
+    // --- GETTERS & SETTERS ---
     public String getTicketId() { return ticketId; }
     public double getPrice() { return price; }
     public TicketType getType() { return type; }
+    public String getOwnerName() { return ownerName; }       // Getter mới cho UI
+    public LocalDateTime getPurchaseTime() { return purchaseTime; } // Getter mới cho Sort
     public LocalDateTime getExpiryDate() { return expiryDate; }
     
-    // Cập nhật trạng thái (để dùng khi qua cổng)
     public void setStatus(TicketStatus status) {
         this.status = status;
+    }
+
+    // Helper: Format giờ đẹp cho bảng Admin (VD: 04/01/2026 14:30:00)
+    public String getFormattedTime() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        return purchaseTime.format(formatter);
     }
     
     @Override
     public String toString() {
-        return String.format("[%s] %s - %.1f - Exp: %s", ticketId, type, price, expiryDate);
+        return String.format("[%s] %s - %.0f VND - Owner: %s", ticketId, type, price, ownerName);
     }
 }

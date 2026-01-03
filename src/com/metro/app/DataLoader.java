@@ -69,7 +69,7 @@ public class DataLoader {
                     String tId = tParts[0].trim();
                     double tPrice = Double.parseDouble(tParts[1].trim());
                     TicketType tType = TicketType.valueOf(tParts[2].trim().toUpperCase());
-                    customer.addTicket(new Ticket(tId, tPrice, tType));
+                    customer.addTicket(new Ticket(tId, tPrice, tType, tStr));
                 }
             }
             return customer;

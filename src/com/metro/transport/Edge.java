@@ -1,13 +1,13 @@
 package com.metro.transport;
 
 public class Edge {
-    public String targetStationId;
+    public String targetId; // Trạm đích
     public double timeCost; // Thời gian di chuyển (phút)
-    public String lineCode; // Tên tuyến (VD: Bus 19, Metro Line 1)
+    public String transportName; // Tên phương tiện (Bus 56, Metro Line 1...)
 
-    public Edge(String targetStationId, double timeCost, String lineCode) {
-        this.targetStationId = targetStationId;
+    public Edge(String targetId, double timeCost, String transportName) {
+        this.targetId = targetId;
         this.timeCost = timeCost;
-        this.lineCode = lineCode;
+        this.transportName = transportName;
     }
 }

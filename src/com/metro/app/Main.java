@@ -1,19 +1,10 @@
 package com.metro.app;
 
-import com.metro.business.FareCalculator;
-import com.metro.business.PaymentService;
-import com.metro.business.Ticket;
-import com.metro.enums.TicketType;
-import com.metro.infrastructure.Line;
-import com.metro.infrastructure.Station;
-import com.metro.transport.RoutePlanner;
-import com.metro.transport.TrafficControl;
-import com.metro.ui.MetroSystemUI;
 
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.SwingUtilities;
+
+import com.metro.ui.MetroSystemUI;
 
 public class Main {
 	
