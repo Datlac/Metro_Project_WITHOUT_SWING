@@ -1,0 +1,82 @@
+package com.metro.app;
+
+import com.metro.business.FareCalculator;
+import com.metro.business.PaymentService;
+import com.metro.business.Ticket;
+import com.metro.enums.TicketType;
+import com.metro.infrastructure.Line;
+import com.metro.infrastructure.Station;
+import com.metro.transport.RoutePlanner;
+import com.metro.ui.MetroSystemUI;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.SwingUtilities;
+
+public class Main {
+	
+    public static void main(String[] args) {
+    	System.out.println("=== TEST TRANSPORT UPDATE (ROUTING & DELAY) ===\n");
+
+        // 1. Setup Bản đồ Metro giả lập (2 Line cắt nhau)
+        // Line 1: S1 -> S2 -> S3 -> S4
+        // Line 2: S3 -> S5 -> S6 (Giao nhau tại S3)
+        
+        Station s1 = new Station("S1", "Ben Thanh");
+        Station s2 = new Station("S2", "Opera House");
+        Station s3 = new Station("S3", "Ba Son"); // Trạm trung chuyển
+        Station s4 = new Station("S4", "Van Thanh");
+        Station s5 = new Station("S5", "Tan Cang");
+        Station s6 = new Station("S6", "Thao Dien");
+
+        Line line1 = new Line("L01", "Line 1");
+        line1.addStation(s1);
+        line1.addStation(s2);
+        line1.addStation(s3);
+        line1.addStation(s4);
+
+        Line line2 = new Line("L02", "Line 2");
+        line2.addStation(s3);
+        line2.addStation(s5);
+        line2.addStation(s6);
+
+        List<Line> allLines = new ArrayList<>();
+        allLines.add(line1);
+        allLines.add(line2);
+
+        // 2. Test Tìm đường (RoutePlanner)
+        RoutePlanner planner = new RoutePlanner();
+        planner.buildGraph(allLines);
+
+        System.out.println("--- Tìm đường từ Bến Thành (S1) đến Thảo Điền (S6) ---");
+        // Logic: Phải đi S1 -> S2 -> S3 (đổi line) -> S5 -> S6
+        List<String> path = planner.findShortestPath("S1", "S6");
+
+        if (!path.isEmpty()) {
+            System.out.println("Lộ trình tối ưu (" + (path.size() - 1) + " trạm dừng):");
+            String routeStr = String.join(" -> ", path);
+            System.out.println(routeStr);
+        }
+
+        System.out.println("\n--- Tìm đường ngược lại từ S4 đến S2 ---");
+        System.out.println(String.join(" -> ", planner.findShortestPath("S4", "S2")));
+
+        // 3. Test Delay (TrafficControl)
+        System.out.println("\n--- Kiểm tra tình trạng giao thông ---");
+        for (int i = 1; i <= 5; i++) {
+            TrafficControl.reportStatus("TRIP-00" + i);
+        }
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Làm giao diện đẹp hơn (giống Windows/Mac native)
+                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+            // Khởi động UI
+            new MetroSystemUI().setVisible(true);
+        });
+    }
+}

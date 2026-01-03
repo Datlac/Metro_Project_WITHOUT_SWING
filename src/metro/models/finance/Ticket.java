@@ -38,6 +38,7 @@ public class Ticket {
     public double getPrice() { return price; }
     public TicketType getTicketType() { return ticketType; }
     public String getTicketId() { return ticketId; }
+    public Customer getCustomer() { return customer; }
 
     @Override
     public String toString() {

@@ -1,0 +1,129 @@
+package com.metro.utils;
+
+import com.metro.business.Ticket;
+import com.metro.enums.CustomerType;
+import com.metro.enums.TicketType;
+import com.metro.people.Customer;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class DataLoader {
+
+    private static final String FILE_PATH = "src/data/customers.txt";
+
+    public static List<Customer> loadCustomersByPage(int page, int pageSize) throws MetroFileException {
+        if (!Files.exists(Paths.get(FILE_PATH))) {
+            throw new MetroFileException("File dữ liệu không tồn tại tại: " + FILE_PATH);
+        }
+
+        try (Stream<String> stream = Files.lines(Paths.get(FILE_PATH), StandardCharsets.UTF_8)) {
+            long skipCount = (long) (page - 1) * pageSize;
+            return stream
+                    .skip(skipCount)
+                    .limit(pageSize)
+                    .filter(line -> !line.trim().isEmpty())
+                    .map(DataLoader::parseCustomer)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new MetroFileException("Lỗi I/O khi đọc file trang " + page, e);
+        } catch (Exception e) {
+            throw new MetroFileException("Lỗi phân tích dữ liệu tại trang " + page, e);
+        }
+    }
+    
+    // Load toàn bộ (nếu cần dùng cho Swing ComboBox)
+    public static List<Customer> loadCustomersFromFile() {
+        try {
+            return loadCustomersByPage(1, 10000); // Load tạm max 10000 dòng
+        } catch (MetroFileException e) {
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
+    }
+
+    public static void saveCustomers(List<Customer> customers) throws MetroFileException {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(FILE_PATH), StandardCharsets.UTF_8, 
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+
+            for (Customer c : customers) {
+                String line = formatCustomerToString(c);
+                writer.write(line);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            throw new MetroFileException("Không thể ghi dữ liệu vào file: " + FILE_PATH, e);
+        }
+    }
+
+    // --- PHẦN SỬA LỖI DUPLICATE VARIABLE Ở ĐÂY ---
+    private static Customer parseCustomer(String line) {
+        try {
+            String[] mainParts = line.split("\\|");
+            String[] info = mainParts[0].split(",");
+            
+            if (info.length < 7) return null; 
+
+            String id = info[0].trim();
+            String name = info[1].trim();
+            LocalDate dob = LocalDate.parse(info[2].trim());
+            String idCard = info[3].trim();
+            String phone = info[4].trim();
+            
+            // --- SỬA LỖI TẠI ĐÂY ---
+            // Đọc số thực từ file (vì file cũ có thể là 500.0)
+            double tempBalance = Double.parseDouble(info[5].trim());
+            // Ép kiểu về int
+            int balance = (int) tempBalance; 
+            // -----------------------
+
+            CustomerType type = CustomerType.valueOf(info[6].trim().toUpperCase());
+
+            Customer customer = new Customer(name, idCard, dob, phone, id, balance, type);
+
+            if (mainParts.length > 1 && !mainParts[1].trim().isEmpty()) {
+                String[] ticketStrings = mainParts[1].split(";");
+                for (String tStr : ticketStrings) {
+                    String[] tParts = tStr.split(":");
+                    if (tParts.length == 3) {
+                        String tId = tParts[0].trim();
+                        
+                        // Xử lý giá vé tương tự (Double -> Int)
+                        double tempPrice = Double.parseDouble(tParts[1].trim());
+                        int tPrice = (int) tempPrice;
+                        
+                        TicketType tType = TicketType.valueOf(tParts[2].trim().toUpperCase());
+                        customer.addTicket(new Ticket(tId, tPrice, tType));
+                    }
+                }
+            }
+            return customer;
+        } catch (Exception e) {
+            // e.printStackTrace(); // Bật lên nếu muốn xem dòng nào lỗi
+            return null;
+        }
+    }
+
+    private static String formatCustomerToString(Customer c) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(c.getCustomerId()).append(",")
+          .append(c.getFullName()).append(",")
+          .append(c.getDob()).append(",") 
+          .append(c.getIdNumber()).append(",") 
+          .append(c.getPhoneNumber()).append(",")
+          .append(c.getWalletBalance()).append(",") // Int sẽ tự động thành String không có .0
+          .append("ADULT"); 
+
+        // Lưu vé (nếu có logic lấy vé)
+        sb.append("|");
+        return sb.toString();
+    }
+}

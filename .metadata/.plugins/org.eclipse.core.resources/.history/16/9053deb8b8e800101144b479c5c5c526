@@ -1,0 +1,60 @@
+package com.metro.business;
+
+import com.metro.infrastructure.Station;
+import java.util.HashMap;
+import java.util.Map;
+
+public class FareCalculator {
+
+    // Giả định giá cơ bản
+    private static final int BASE_FARE = 10;
+    private static final int PRICE_PER_ZONE = 5;
+
+    // Map lưu trữ: Tên trạm -> Số Zone (Ví dụ: Bến Thành là Zone 1, Suối Tiên là Zone 3)
+    private static final Map<String, Integer> stationZones = new HashMap<>();
+
+    static {
+        // Khởi tạo dữ liệu mẫu cho các Zone
+        // Zone 1: Trung tâm
+        stationZones.put("Ben Thanh", 1);
+        stationZones.put("Opera House", 1);
+        stationZones.put("Ba Son", 1);
+        
+        // Zone 2: Cận trung tâm
+        stationZones.put("Van Thanh", 2);
+        stationZones.put("Tan Cang", 2);
+        
+        // Zone 3: Ngoại thành
+        stationZones.put("Thao Dien", 3);
+        stationZones.put("An Phu", 3);
+        stationZones.put("Suoi Tien", 4);
+    }
+
+    /**
+     * Tính giá vé dựa trên khoảng cách Zone
+     * @param startStationId Tên hoặc ID trạm bắt đầu
+     * @param endStationId Tên hoặc ID trạm kết thúc
+     * @return Số tiền cần thanh toán
+     */
+    public static int calculateFare(String startStationId, String endStationId) {
+        // Kiểm tra trạm có tồn tại trong hệ thống Zone không
+        if (!stationZones.containsKey(startStationId) || !stationZones.containsKey(endStationId)) {
+            System.out.println("Cảnh báo: Trạm không thuộc Zone nào. Tính giá mặc định (Flat Rate).");
+            return 20; // Giá vé đồng hạng nếu không xác định được Zone
+        }
+
+        int startZone = stationZones.get(startStationId);
+        int endZone = stationZones.get(endStationId);
+
+        // Công thức: Giá gốc + (Chênh lệch Zone * Giá mỗi Zone)
+        int zoneDiff = Math.abs(endZone - startZone);
+        int totalFare = BASE_FARE + (zoneDiff * PRICE_PER_ZONE);
+
+        return totalFare;
+    }
+    
+    // Helper để lấy Zone của 1 trạm
+    public static int getZone(String stationName) {
+        return stationZones.getOrDefault(stationName, -1);
+    }
+}

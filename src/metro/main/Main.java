@@ -2,7 +2,7 @@ package metro.main;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+
 import java.util.List;
 
 import metro.enums.CustomerType;
@@ -15,6 +15,7 @@ import metro.models.transport.Route;
 import metro.models.transport.Station;
 import metro.models.transport.Train;
 import metro.models.transport.Trip;
+import metro.gui.MetroGUI;
 import metro.services.MetroSystem;
 import metro.services.RevenueManager;
 
@@ -42,23 +43,31 @@ public class Main {
 
         // --- 3. Tạo danh sách khách hàng (Tự động tạo 10 khách C01 -> C10) ---
         // Để phục vụ việc đọc file data_large.txt
-        List<Customer> customers = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
-            String id = String.format("C%02d", i); // Tạo chuỗi C01, C02...
-            CustomerType type = (i % 2 == 0) ? CustomerType.ADULT : CustomerType.STUDENT;
-            
-            Customer c = new Customer(
-                "Khách Hàng " + i, 
-                "ID_" + id, 
-                LocalDate.of(2000, 1, 1), 
-                "0909000" + i, 
-                id, 
-                type
-            );
-            c.topUpBalance(5000000); // Nạp tiền sẵn để test mua nhiều vé
-            customers.add(c);
-        }
+        // --- 3. Tạo danh sách khách hàng (Tự động tạo 10 khách C01 -> C10) ---
+        // Để phục vụ việc đọc file data_large.txt
+        List<Customer> customers = java.util.stream.IntStream.rangeClosed(1, 10)
+            .mapToObj(i -> {
+                String id = String.format("C%02d", i); // Tạo chuỗi C01, C02...
+                CustomerType type = (i % 2 == 0) ? CustomerType.ADULT : CustomerType.STUDENT;
+                
+                Customer c = new Customer(
+                    "Khách Hàng " + i, 
+                    "ID_" + id, 
+                    LocalDate.of(2000, 1, 1), 
+                    "0909000" + i, 
+                    id, 
+                    type
+                );
+                // Random balance between 100,000 and 5,000,000
+                double randomBalance = 100000 + new java.util.Random().nextDouble() * 4900000;
+                c.topUpBalance(randomBalance); 
+
+                return c;
+            })
+            .collect(java.util.stream.Collectors.toList());
         System.out.println("Đã tạo " + customers.size() + " khách hàng giả lập.");
+        
+
 
         // --- 4. Tạo các thành phần Vận hành (Tàu, Tài xế, Chuyến đi) ---
         Route route1 = new Route("R01", 15.5);
@@ -80,21 +89,40 @@ public class Main {
         trip1.startTrip();
         trip1.completeTrip();
         
-        // --- 5. Test Mua vé Thủ công ---
-        System.out.println("\n--- TEST ĐẶT VÉ THỦ CÔNG ---");
+        // --- 5. Test Mua vé Thủ công & Random ---
+        System.out.println("\n--- TEST ĐẶT VÉ THỦ CÔNG & RANDOM ---");
         Customer c1 = customers.get(0); // Lấy khách C01
         
         Ticket t1 = new Ticket("TKT_MANUAL_01", c1, TicketType.MONTHLYPASS, 20000);
         c1.buyTicket(t1);
-        system.recordTicket(t1); // Sử dụng biến system đã khai báo ở trên
+        system.recordTicket(t1); 
 
         Ticket t2 = new Ticket("TKT_MANUAL_02", c1, TicketType.SINGLERIDE, 5000);
         c1.buyTicket(t2);
         system.recordTicket(t2);
+        
+        // Random ticket purchases for other customers
+        java.util.Random rand = new java.util.Random();
+        for (int i = 1; i < customers.size(); i++) {
+             Customer c = customers.get(i);
+             if (rand.nextBoolean()) { // 50% chance to buy ticket
+                 TicketType[] types = TicketType.values();
+                 TicketType type = types[rand.nextInt(types.length)];
+                 double price = (type == TicketType.MONTHLYPASS) ? 200000 : (type == TicketType.DAYPASS ? 30000 : 10000);
+                 Ticket t = new Ticket("TKT_RAND_" + i, c, type, price);
+                 c.buyTicket(t);
+                 system.recordTicket(t);
+             }
+        }
 
         // --- 6. Đọc vé từ File (Chức năng đọc file data.txt hoặc data_large.txt) ---
-        // Đảm bảo bạn đã tạo file data_large.txt ngang hàng thư mục src
-        system.importTicketsFromFile("data_large.txt", customers);
+        // File nằm cùng cấp với thư mục src, nên đường dẫn là ../data_large.txt nếu chạy từ src
+        // Hoặc kiểm tra cả 2 trường hợp
+        String dataFilePath = "data_large.txt";
+        if (!java.nio.file.Files.exists(java.nio.file.Paths.get(dataFilePath))) {
+            dataFilePath = "../data_large.txt";
+        }
+        system.importTicketsFromFile(dataFilePath, customers);
 
         // --- 7. Thống kê Doanh thu ---
         RevenueManager rm = new RevenueManager();
@@ -107,5 +135,37 @@ public class Main {
         
         // Sắp xếp theo Top doanh thu (Value)
         rm.printRevenueByValue(system.getSoldTickets());       
+
+        // --- 8. Launch Swing GUI ---
+        System.out.println("\n--- BẢNG KIỂM TRA CÔNG THỨC SỐ DƯ ---");
+        System.out.println("Công thức: Số dư hiện tại = Tổng tiền nạp - Tổng tiền vé đã chi");
+        System.out.println("---------------------------------------------------------------------------------------------------------");
+        System.out.printf("%-5s | %-15s | %-15s | %-15s | %-15s | %-10s%n", 
+            "ID", "Tổng Nạp", "Tổng Chi", "Số Dư Tính Toán", "Số Dư Thực Tế", "Khớp?");
+        System.out.println("---------------------------------------------------------------------------------------------------------");
+        
+        for (Customer c : customers) {
+            double totalDeposited = c.getSmartCard().getTotalDeposited();
+            double totalSpent = c.getTotalSpent();
+            double calculatedBalance = totalDeposited - totalSpent;
+            double actualBalance = c.getWalletBalance();
+            boolean isMatch = Math.abs(calculatedBalance - actualBalance) < 0.01;
+            
+            System.out.printf("%-5s | %,15.0f | %,15.0f | %,15.0f | %,15.0f | %-10s%n",
+                c.getCustomerId(),
+                totalDeposited,
+                totalSpent,
+                calculatedBalance,
+                actualBalance,
+                isMatch ? "OK" : "SAI"
+            );
+        }
+        System.out.println("---------------------------------------------------------------------------------------------------------");
+        
+        System.out.println("\n--- ĐANG KHỞI ĐỘNG GIAO DIỆN SWING... ---");
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            new MetroGUI(system, customers).setVisible(true);
+        });
     }
 }

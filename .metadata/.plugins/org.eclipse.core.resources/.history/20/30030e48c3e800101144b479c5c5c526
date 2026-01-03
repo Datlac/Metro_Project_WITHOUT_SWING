@@ -1,0 +1,71 @@
+package com.metro.business;
+
+import com.metro.enums.CustomerType;
+import com.metro.enums.TicketType;
+import java.util.HashMap;
+import java.util.Map;
+
+public class FareCalculator {
+
+	// Bảng giá vé lượt theo Zone (Tuyến số 1)
+    private static final double[] ZONE_PRICES = {
+        6000.0, 8000.0, 9000.0, 11000.0, 13000.0, 15000.0, 17000.0, 19000.0
+    };
+    
+    // BẢNG GIÁ VÉ ĐỊNH KỲ
+    public static final double PRICE_1_DAY_PASS = 40000.0;  // 1 Ngày
+    public static final double PRICE_3_DAY_PASS = 90000.0;  // 3 Ngày
+    public static final double PRICE_MONTHLY_NORMAL = 200000.0; // Tháng (Người lớn)
+    public static final double PRICE_MONTHLY_STUDENT = 150000.0; // Tháng (HSSV)
+
+    private static final Map<String, Integer> stationZones = new HashMap<>();
+
+    static {
+        
+        String[] zone1 = {"Bến Thành", "Nhà hát Thành Phố", "Ba Son", "Văn Thánh", "Tân Cảng", "Thảo Điền", "An Phú"};
+        for (String s : zone1) stationZones.put(s, 1);
+        
+        
+        stationZones.put("Rạch Chiếc", 2);
+        stationZones.put("Phước Long", 3);
+        stationZones.put("Bình Thái", 4);
+        stationZones.put("Thủ Đức", 5);
+        stationZones.put("Khu Công Nghệ Cao", 6);
+        stationZones.put("Đại học Quốc Gia", 7);
+        stationZones.put("Bến xe Suối Tiên", 8);
+    }
+
+    public static double calculateTripFare(String startStationName, String endStationName) {
+        String start = cleanStationName(startStationName);
+        String end = cleanStationName(endStationName);
+
+        if (!stationZones.containsKey(start) || !stationZones.containsKey(end)) return 6000.0;
+
+        int startZone = stationZones.get(start);
+        int endZone = stationZones.get(end);
+        int zoneDiff = Math.abs(endZone - startZone);
+
+        if (zoneDiff >= ZONE_PRICES.length) zoneDiff = ZONE_PRICES.length - 1;
+
+        return ZONE_PRICES[zoneDiff];
+    }
+    
+    // LOGIC TÍNH GIÁ VÉ ĐỊNH KỲ CHUẨN
+    public static double calculatePassPrice(TicketType type, CustomerType customerType) {
+        switch (type) {
+            case DAYPASS:
+                return PRICE_1_DAY_PASS; // 40.000
+            case THREEDAYPASS:
+                return PRICE_3_DAY_PASS; // 90.000
+            case MONTHLYPASS:
+                return (customerType == CustomerType.STUDENT) ? PRICE_MONTHLY_STUDENT : PRICE_MONTHLY_NORMAL;
+            default:
+                return 0;
+        }
+    }
+
+    private static String cleanStationName(String rawName) {
+        if (rawName.contains(" - ")) return rawName.split(" - ")[1];
+        return rawName;
+    }
+}

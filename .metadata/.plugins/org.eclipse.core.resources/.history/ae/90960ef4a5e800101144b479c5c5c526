@@ -1,0 +1,5 @@
+package com.metro.business;
+
+public class FareCalculator {
+
+}

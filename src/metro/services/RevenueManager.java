@@ -1,49 +1,45 @@
 package metro.services;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import metro.models.finance.Ticket;
 
 public class RevenueManager {
     public void printRevenueReport(List<Ticket> soldTickets, boolean ascending) {
-        TreeMap<String, Double> revenueMap = new TreeMap<>();
+        // Use Streams to group by TicketType and sum prices
+        Map<String, Double> revenueMap = soldTickets.stream()
+            .collect(Collectors.groupingBy(
+                t -> t.getTicketType().toString(),
+                TreeMap::new, // Keep natural order for keys if desired, or let TreeMap sort it
+                Collectors.summingDouble(Ticket::getPrice)
+            ));
 
-        for (Ticket t : soldTickets) {
-            String typeName = t.getTicketType().toString();
-            revenueMap.put(typeName, revenueMap.getOrDefault(typeName, 0.0) + t.getPrice());
-        }
-
-        System.out.println("\n=== BÁO CÁO DOANH THU (TREEMAP) ===");
+        System.out.println("\n=== BÁO CÁO DOANH THU (JAVA 8 STREAMS) ===");
         
-        if (ascending) {
-            System.out.println(">> Sắp xếp TĂNG DẦN theo loại vé (Key):");
-            for (Map.Entry<String, Double> entry : revenueMap.entrySet()) {
-                System.out.printf("- %-15s: %,10.0f VND%n", entry.getKey(), entry.getValue());
-            }
-        } else {
-            System.out.println(">> Sắp xếp GIẢM DẦN theo loại vé (Key):");
-            for (Map.Entry<String, Double> entry : revenueMap.descendingMap().entrySet()) {
-                System.out.printf("- %-15s: %,10.0f VND%n", entry.getKey(), entry.getValue());
-            }
-        }
+        Comparator<String> keyComparator = ascending ? Comparator.naturalOrder() : Comparator.reverseOrder();
+        
+        System.out.println(ascending ? ">> Sắp xếp TĂNG DẦN theo loại vé (Key):" : ">> Sắp xếp GIẢM DẦN theo loại vé (Key):");
+        
+        revenueMap.keySet().stream()
+            .sorted(keyComparator)
+            .forEach(key -> System.out.printf("- %-15s: %,10.0f VND%n", key, revenueMap.get(key)));
     }
     
     public void printRevenueByValue(List<Ticket> soldTickets) {
-        Map<String, Double> map = new HashMap<>();
-        for (Ticket t : soldTickets) {
-            String key = t.getTicketType().toString();
-            map.put(key, map.getOrDefault(key, 0.0) + t.getPrice());
-        }
-
-        List<Map.Entry<String, Double>> list = new ArrayList<>(map.entrySet());
-        list.sort((o1, o2) -> o2.getValue().compareTo(o1.getValue()));
+        // Group and sum
+        Map<String, Double> revenueMap = soldTickets.stream()
+            .collect(Collectors.groupingBy(
+                t -> t.getTicketType().toString(),
+                Collectors.summingDouble(Ticket::getPrice)
+            ));
 
         System.out.println("\n>> Top doanh thu cao nhất (Sort List by Value):");
-        for (Map.Entry<String, Double> entry : list) {
-            System.out.printf("- %-15s: %,10.0f VND%n", entry.getKey(), entry.getValue());
-        }
+        
+        revenueMap.entrySet().stream()
+            .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+            .forEach(entry -> System.out.printf("- %-15s: %,10.0f VND%n", entry.getKey(), entry.getValue()));
     }
 }

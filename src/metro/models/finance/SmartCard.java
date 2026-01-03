@@ -10,19 +10,25 @@ public class SmartCard {
     private CustomerType linkedType; // Loại thẻ (Sinh viên/Người lớn)
     private boolean isActive;
 
+    private double totalDeposited = 0.0;
+
     public SmartCard(String cardNumber, CustomerType type) {
         this.cardNumber = cardNumber;
         this.linkedType = type;
         this.balance = 0.0;
+        this.totalDeposited = 0.0;
         this.isActive = true;
         this.expiryDate = LocalDate.now().plusYears(2); // Hạn 2 năm
     }
 
-    public void deposit(double amount) {
+    public boolean deposit(double amount) {
         if (amount > 0) {
             this.balance += amount;
-            System.out.println("Nạp thẻ " + cardNumber + ": +" + amount);
+            this.totalDeposited += amount;
+            System.out.println("Nạp thẻ " + cardNumber + ": +" + String.format("%,.0f", amount));
+            return true;
         }
+        return false;
     }
 
     public boolean pay(double amount) {
@@ -35,4 +41,6 @@ public class SmartCard {
     }
 
     public double getBalance() { return balance; }
+    public double getTotalDeposited() { return totalDeposited; }
+
 }

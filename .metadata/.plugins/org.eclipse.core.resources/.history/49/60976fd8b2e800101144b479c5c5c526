@@ -1,0 +1,45 @@
+package com.metro.app;
+
+import com.metro.business.FareCalculator;
+import com.metro.business.PaymentService;
+import com.metro.business.Ticket;
+import com.metro.enums.TicketType;
+import com.metro.ui.MetroSystemUI;
+import javax.swing.SwingUtilities;
+
+public class Main {
+	
+    public static void main(String[] args) {
+        // Chạy giao diện trên luồng sự kiện của Swing (EDT) để tránh lỗi giật lag
+    	// Ví dụ Test Task 2.1: Tính giá vé theo Zone
+    	double fare = FareCalculator.calculateFare("Ben Thanh", "Suoi Tien");
+    	System.out.println("Giá vé từ Bến Thành (Zone 1) đi Suối Tiên (Zone 4): " + fare); 
+    	// Kết quả kỳ vọng: 10 + (|4-1| * 5) = 25.0
+
+    	// Ví dụ Test Task 2.2: Validate Ticket
+    	Ticket t = new Ticket("T001", 25.0, TicketType.SINGLERIDE);
+    	// ...Giả sử chỉnh thời gian trôi qua...
+    	if (t.isValid()) {
+    	    System.out.println("Cổng mở!");
+    	} else {
+    	    System.out.println("Cổng đóng - Vé hết hạn hoặc không hợp lệ");
+    	}
+
+    	// Ví dụ Test Task 2.3: Thanh toán tiền mặt
+    	double change = PaymentService.handleCashPayment(50.0, 25.0);
+    	if (change >= 0) {
+    	    System.out.println("Giao dịch thành công. Nhận lại: " + change);
+    	}
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Làm giao diện đẹp hơn (giống Windows/Mac native)
+                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+            // Khởi động UI
+            new MetroSystemUI().setVisible(true);
+        });
+    }
+}

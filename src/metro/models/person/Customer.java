@@ -8,33 +8,28 @@ import metro.models.finance.Ticket;
 
 public class Customer extends Person {
     private String customerId;
-    private double walletBalance;
-    private List<Ticket> ticketHistory;
+    private metro.models.finance.SmartCard card;
+    private List<Ticket> ticketHistory; // Interface List
     private CustomerType type;
 
     public Customer(String fullName, String idNumber, LocalDate dob, String phoneNumber, String customerId, CustomerType type) {
         super(fullName, idNumber, dob, phoneNumber);
         this.customerId = customerId;
         this.type = type;
-        this.walletBalance = 0.0;
+        // Initialize SmartCard
+        this.card = new metro.models.finance.SmartCard(customerId, type); 
         this.ticketHistory = new ArrayList<>();
     }
 
     public boolean topUpBalance(double amount) {
-        if (amount > 0) {
-            this.walletBalance += amount;
-            System.out.println("Nạp thành công " + amount + ". Số dư mới: " + walletBalance);
-            return true;
-        }
-        return false;
+        return this.card.deposit(amount);
     }
 
     public boolean deductBalance(double amount) {
-        if (walletBalance >= amount) {
-            walletBalance -= amount;
+        if (this.card.pay(amount)) {
             return true;
         }
-        System.out.println("Số dư không đủ!");
+        System.out.println("MB: Số dư không đủ! (Cần: " + amount + ", Có: " + card.getBalance() + ")");
         return false;
     }
 
@@ -52,5 +47,16 @@ public class Customer extends Person {
     }
 
     public String getCustomerId() { return customerId; }
-    public double getWalletBalance() { return walletBalance; }
+    
+    public double getWalletBalance() { return card.getBalance(); }
+    
+    public metro.models.finance.SmartCard getSmartCard() {
+        return this.card;
+    }
+    
+    public double getTotalSpent() {
+        return ticketHistory.stream().mapToDouble(Ticket::getPrice).sum();
+    }
+    
+    public List<Ticket> getTicketHistory() { return ticketHistory; }
 }

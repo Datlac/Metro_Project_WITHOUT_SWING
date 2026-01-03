@@ -1,0 +1,435 @@
+package com.metro.ui;
+
+import com.metro.business.FareCalculator;
+import com.metro.business.Ticket;
+import com.metro.enums.CustomerType;
+import com.metro.enums.TicketType;
+import com.metro.infrastructure.Line;
+import com.metro.infrastructure.Station;
+import com.metro.people.Customer;
+import com.metro.transport.RoutePlanner;
+import com.metro.transport.TrafficControl;
+import com.metro.app.DataLoader;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+
+public class MetroSystemUI extends JFrame {
+
+    // --- MODEL ---
+    private List<Customer> customerList;
+    private List<Ticket> allSoldTickets;
+    private RoutePlanner routePlanner;
+    private List<Station> allStations;
+
+    // --- FORMATTER ---
+    private final DecimalFormat currencyFormatter;
+
+    // --- UI COMPONENTS ---
+    // 1. Tab Khách hàng
+    private JComboBox<String> userSelectCombo;
+    private JLabel lblBalance, lblName, lblType; 
+    private JTable userHistoryTable;
+    private DefaultTableModel userHistoryModel;
+    private JComboBox<TicketType> typeCombo;
+    private JComboBox<String> cbBuyStart, cbBuyEnd;
+    private JTextField txtPrice;
+    
+    // 2. Tab Quản trị
+    private JLabel lblTotalRevenue, lblTotalTickets;
+    private JTable adminTable;
+    private DefaultTableModel adminModel;
+    
+    // 3. Tab Vận hành (Gợi ý tuyến)
+    private JComboBox<String> cbStartStation; // Chọn điểm đi
+    private JComboBox<String> cbEndStation;   // Chọn điểm đến
+    private JTextArea txtRouteResult;         // Hiển thị gợi ý
+    private JTextArea txtTrafficLog;
+
+    public MetroSystemUI() {
+        // Cấu hình định dạng tiền tệ (20.000)
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+        symbols.setGroupingSeparator('.');
+        symbols.setDecimalSeparator(','); 
+        currencyFormatter = new DecimalFormat("#,###", symbols);
+
+        loadData();
+        initTransportSystem(); 
+
+        setTitle("Metro System - Quản Lý & Điều Phối Đa Phương Tiện");
+        setSize(1150, 750);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Arial", Font.BOLD, 14));
+
+        // THÊM CÁC TAB
+        tabbedPane.addTab("KHÁCH HÀNG (MUA VÉ)", createCustomerPanel());
+        tabbedPane.addTab("QUẢN TRỊ (DOANH THU)", createAdminPanel());
+        // ĐÂY LÀ TAB BẠN YÊU CẦU:
+        tabbedPane.addTab("VẬN HÀNH (GỢI Ý TUYẾN)", createOperationsPanel());
+
+        add(tabbedPane);
+    }
+
+    private void loadData() {
+        customerList = DataLoader.loadCustomersFromFile();
+        allSoldTickets = new ArrayList<>();
+    }
+
+    // --- KHỞI TẠO MẠNG LƯỚI: BUS ĐIỆN + METRO ---
+    private void initTransportSystem() {
+        allStations = new ArrayList<>();
+        
+        // 1. CÁC GA METRO
+        Station s1 = new Station("S01", "Ga Ben Thanh");
+        Station s2 = new Station("S02", "Ga Nha Hat TP");
+        Station s3 = new Station("S03", "Ga Ba Son"); 
+        Station s4 = new Station("S04", "Ga Van Thanh");
+        Station s5 = new Station("S05", "Ga Tan Cang");
+        Station s6 = new Station("S06", "Ga Thao Dien");
+        Station s7 = new Station("S07", "Ga An Phu");
+        Station s8 = new Station("S08", "Ga Rach Chiec");
+        Station s9 = new Station("S09", "Ga Phuoc Long");
+        Station s10 = new Station("S10", "Ga Binh Thai");
+        Station s11 = new Station("S11", "Ga Thu Duc");
+        Station s12 = new Station("S12", "Ga Khu CNC");
+        Station s13 = new Station("S13", "Ga DH Quoc Gia");
+        Station s14 = new Station("S14", "Ga Suoi Tien");
+
+        allStations.add(s1); allStations.add(s2); allStations.add(s3);
+        allStations.add(s4); allStations.add(s5); allStations.add(s6);
+        allStations.add(s7); allStations.add(s8); allStations.add(s9);
+        allStations.add(s10); allStations.add(s11); allStations.add(s12);
+        allStations.add(s13); allStations.add(s14);
+
+        // 2. CÁC ĐỊA ĐIỂM TRƯỜNG HỌC
+        Station locNongLam = new Station("LOC-NL", "DH Nong Lam");
+        Station locSuPham = new Station("LOC-SP", "DH Su Pham (Q5)");
+        Station locSPKT = new Station("LOC-SPKT", "DH Su Pham Ky Thuat");
+        
+        allStations.add(locNongLam);
+        allStations.add(locSuPham);
+        allStations.add(locSPKT);
+
+        // 3. THIẾT LẬP CÁC TUYẾN XE
+        
+        // Metro Line 1
+        Line metroLine1 = new Line("METRO-01", "Metro Ben Thanh - Suoi Tien");
+        for (Station s : allStations) {
+            if (s.getStationId().startsWith("S")) metroLine1.addStation(s);
+        }
+
+        // Bus D1: Nông Lâm -> Suối Tiên (Kết nối nhanh)
+        Line busD1 = new Line("BUS-D01", "VinBus: Nong Lam - Suoi Tien");
+        busD1.addStation(locNongLam);
+        busD1.addStation(s14); 
+
+        // Bus D2: SPKT -> Thủ Đức
+        Line busD2 = new Line("BUS-D02", "VinBus: SPKT - Thu Duc");
+        busD2.addStation(locSPKT);
+        busD2.addStation(s11);
+
+        // Bus D3: Sư Phạm -> Bến Thành
+        Line busD3 = new Line("BUS-D03", "VinBus: DH Su Pham - Ben Thanh");
+        busD3.addStation(locSuPham);
+        busD3.addStation(s1);
+
+        // Bus 19: Nông Lâm -> Bến Thành (Chạy thẳng, chậm)
+        Line bus19 = new Line("BUS-19", "Bus 19: Nong Lam - Ben Thanh (Chay thang)");
+        bus19.addStation(locNongLam);
+        bus19.addStation(s1);
+
+        // TỔNG HỢP GRAPH
+        List<Line> lines = new ArrayList<>();
+        lines.add(metroLine1);
+        lines.add(busD1); lines.add(busD2); lines.add(busD3); lines.add(bus19);
+
+        routePlanner = new RoutePlanner();
+        routePlanner.buildGraph(lines);
+    }
+
+    // ==========================================
+    // TAB 3: VẬN HÀNH & ĐIỀU PHỐI (GỢI Ý TUYẾN Ở ĐÂY)
+    // ==========================================
+    private JPanel createOperationsPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, 2, 10, 10)); 
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // --- CỘT TRÁI: GỢI Ý TÌM TUYẾN ---
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setBorder(BorderFactory.createTitledBorder("📍 Hệ Thống Gợi Ý Lộ Trình Thông Minh"));
+        
+        JPanel inputPanel = new JPanel(new GridLayout(3, 2, 5, 10));
+        Vector<String> sNames = new Vector<>();
+        for (Station s : allStations) sNames.add(s.getStationId() + " - " + s.getName());
+        
+        cbStartStation = new JComboBox<>(sNames);
+        cbEndStation = new JComboBox<>(sNames);
+        // Chọn mặc định để test (Nông Lâm -> Sư Phạm)
+        cbStartStation.setSelectedItem("LOC-NL - DH Nong Lam");
+        cbEndStation.setSelectedItem("LOC-SP - DH Su Pham (Q5)");
+
+        JButton btnFindRoute = new JButton("TÌM PHƯƠNG ÁN TỐI ƯU");
+        btnFindRoute.setBackground(new Color(0, 128, 0)); // Màu xanh lá
+        btnFindRoute.setForeground(Color.WHITE);
+        btnFindRoute.setFont(new Font("Arial", Font.BOLD, 14));
+
+        inputPanel.add(new JLabel("Điểm Xuất Phát:")); inputPanel.add(cbStartStation);
+        inputPanel.add(new JLabel("Điểm Đích:")); inputPanel.add(cbEndStation);
+        inputPanel.add(new JLabel("")); inputPanel.add(btnFindRoute);
+        
+        txtRouteResult = new JTextArea();
+        txtRouteResult.setEditable(false);
+        txtRouteResult.setFont(new Font("Monospaced", Font.BOLD, 13));
+        txtRouteResult.setForeground(new Color(0, 0, 139)); // Xanh đậm
+        
+        leftPanel.add(inputPanel, BorderLayout.NORTH);
+        leftPanel.add(new JScrollPane(txtRouteResult), BorderLayout.CENTER);
+
+        // --- CỘT PHẢI: GIÁM SÁT GIAO THÔNG ---
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setBorder(BorderFactory.createTitledBorder("🚦 Giám Sát Thời Gian Thực"));
+        JButton btnCheckTraffic = new JButton("QUÉT TÌNH TRẠNG METRO & BUS");
+        
+        txtTrafficLog = new JTextArea();
+        txtTrafficLog.setEditable(false);
+        txtTrafficLog.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        txtTrafficLog.setBackground(Color.BLACK);
+        txtTrafficLog.setForeground(Color.GREEN); 
+        
+        rightPanel.add(btnCheckTraffic, BorderLayout.NORTH);
+        rightPanel.add(new JScrollPane(txtTrafficLog), BorderLayout.CENTER);
+
+        // --- SỰ KIỆN TÌM ĐƯỜNG ---
+        btnFindRoute.addActionListener(e -> {
+            String startId = ((String) cbStartStation.getSelectedItem()).split(" - ")[0];
+            String endId = ((String) cbEndStation.getSelectedItem()).split(" - ")[0];
+            
+            // Gọi thuật toán (Dijkstra/BFS)
+            List<String> path = routePlanner.findShortestPath(startId, endId);
+            
+            if (path.isEmpty()) {
+                txtRouteResult.setText("❌ Không tìm thấy lộ trình phù hợp!");
+            } else {
+                StringBuilder sb = new StringBuilder();
+                sb.append("✅ ĐỀ XUẤT LỘ TRÌNH:\n");
+                sb.append("========================\n");
+                
+                // Format kết quả đẹp hơn
+                for (int i = 0; i < path.size(); i++) {
+                    String step = path.get(i);
+                    if (step.contains("->")) { // Nếu là thông tin Tuyến (Bus/Metro)
+                         sb.append("  ⬇  ").append(step).append("\n");
+                    } else { // Nếu là Trạm/Địa điểm
+                         sb.append("📍 ").append(step).append("\n");
+                    }
+                }
+                sb.append("========================\n");
+                sb.append("🏁 Đã đến nơi!");
+                txtRouteResult.setText(sb.toString());
+            }
+        });
+
+        // --- SỰ KIỆN TRAFFIC ---
+        btnCheckTraffic.addActionListener(e -> {
+            txtTrafficLog.setText("--- ĐANG KẾT NỐI CAMERA GIÁM SÁT ---\n");
+            for (int i = 1; i <= 5; i++) {
+                String tripId = "METRO-0" + i;
+                int delay = TrafficControl.checkDelay();
+                String msg = (delay > 0) ? String.format("[⚠️ ALERT] %s TRỄ %d phút.\n", tripId, delay) : String.format("[✔ OK] %s ĐÚNG GIỜ.\n", tripId);
+                txtTrafficLog.append(msg);
+            }
+            txtTrafficLog.append("\n[INFO] Hệ thống VinBus hoạt động ổn định.");
+        });
+
+        panel.add(leftPanel); panel.add(rightPanel);
+        return panel;
+    }
+
+    // ==========================================
+    // TAB 1: KHÁCH HÀNG (GIỮ NGUYÊN)
+    // ==========================================
+    private JPanel createCustomerPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel topPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+        topPanel.setBorder(BorderFactory.createTitledBorder("Thông Tin Khách Hàng"));
+        JPanel selectPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        selectPanel.add(new JLabel("Chọn Khách Hàng: "));
+        Vector<String> customerNames = new Vector<>();
+        for (Customer c : customerList) customerNames.add(c.getCustomerId() + " - " + c.getFullName());
+        userSelectCombo = new JComboBox<>(customerNames);
+        userSelectCombo.setPreferredSize(new Dimension(300, 25));
+        selectPanel.add(userSelectCombo);
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        lblName = new JLabel("Tên: ---");
+        lblType = new JLabel(" | Loại: ---"); 
+        lblType.setForeground(Color.BLUE);
+        lblBalance = new JLabel(" | Số Dư: 0 VND");
+        lblBalance.setForeground(new Color(0, 100, 0));
+        lblBalance.setFont(new Font("Arial", Font.BOLD, 14));
+        infoPanel.add(lblName); infoPanel.add(lblType); infoPanel.add(lblBalance);
+        topPanel.add(selectPanel); topPanel.add(infoPanel);
+
+        JPanel buyPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        buyPanel.setBorder(BorderFactory.createTitledBorder("Mua Vé Mới"));
+        typeCombo = new JComboBox<>(TicketType.values());
+        Vector<String> stationList = new Vector<>();
+        for (Station s : allStations) stationList.add(s.getStationId() + " - " + s.getName());
+        cbBuyStart = new JComboBox<>(stationList);
+        cbBuyEnd = new JComboBox<>(stationList);
+        if (stationList.size() > 1) cbBuyEnd.setSelectedIndex(stationList.size()-1); 
+        txtPrice = new JTextField(10);
+        txtPrice.setEditable(false);
+        txtPrice.setForeground(Color.RED);
+        txtPrice.setFont(new Font("Arial", Font.BOLD, 12));
+        JButton btnBuy = new JButton("THANH TOÁN");
+        btnBuy.setBackground(new Color(30, 144, 255));
+        btnBuy.setForeground(Color.WHITE);
+
+        buyPanel.add(new JLabel("Loại Vé:")); buyPanel.add(typeCombo);
+        buyPanel.add(new JLabel("Từ Ga:")); buyPanel.add(cbBuyStart);
+        buyPanel.add(new JLabel("Đến Ga:")); buyPanel.add(cbBuyEnd);
+        buyPanel.add(new JLabel("Thành Tiền:")); buyPanel.add(txtPrice);
+        buyPanel.add(btnBuy);
+
+        typeCombo.addActionListener(e -> updateTicketPriceUI());
+        cbBuyStart.addActionListener(e -> updateTicketPriceUI());
+        cbBuyEnd.addActionListener(e -> updateTicketPriceUI());
+        userSelectCombo.addActionListener(e -> {
+            updateCurrentUserView();
+            updateTicketPriceUI(); 
+        });
+        btnBuy.addActionListener(e -> handleBuyTicket());
+
+        String[] cols = {"Mã Vé", "Loại Vé", "Giá Tiền", "Trạng Thái"};
+        userHistoryModel = new DefaultTableModel(cols, 0);
+        userHistoryTable = new JTable(userHistoryModel);
+        JScrollPane scrollHistory = new JScrollPane(userHistoryTable);
+        scrollHistory.setBorder(BorderFactory.createTitledBorder("Lịch Sử Vé Của Khách"));
+
+        panel.add(topPanel, BorderLayout.NORTH);
+        JPanel centerContainer = new JPanel(new BorderLayout());
+        centerContainer.add(buyPanel, BorderLayout.NORTH);
+        centerContainer.add(scrollHistory, BorderLayout.CENTER);
+        panel.add(centerContainer, BorderLayout.CENTER);
+
+        if (customerList.size() > 0) {
+            userSelectCombo.setSelectedIndex(0);
+            updateCurrentUserView();
+        }
+        updateTicketPriceUI();
+        return panel;
+    }
+
+    private void updateTicketPriceUI() {
+        TicketType type = (TicketType) typeCombo.getSelectedItem();
+        Customer current = getSelectedCustomer();
+        double price = 0;
+        if (type == TicketType.SINGLERIDE) {
+            cbBuyStart.setEnabled(true);
+            cbBuyEnd.setEnabled(true);
+            String startName = (String) cbBuyStart.getSelectedItem();
+            String endName = (String) cbBuyEnd.getSelectedItem();
+            price = FareCalculator.calculateTripFare(startName, endName);
+        } else {
+            cbBuyStart.setEnabled(false);
+            cbBuyEnd.setEnabled(false);
+            CustomerType cType = (current != null) ? current.getType() : CustomerType.ADULT;
+            price = FareCalculator.calculatePassPrice(type, cType);
+        }
+        txtPrice.setText(currencyFormatter.format(price));
+    }
+
+    private void handleBuyTicket() {
+        Customer current = getSelectedCustomer();
+        if (current == null) return;
+        try {
+            String priceStr = txtPrice.getText().replace(".", "").replace(",", "");
+            double price = Double.parseDouble(priceStr);
+            TicketType type = (TicketType) typeCombo.getSelectedItem();
+            String ticketId = "T-" + System.currentTimeMillis();
+            Ticket newTicket = new Ticket(ticketId, price, type);
+            if (current.deductBalance(price)) {
+                current.addTicket(newTicket);
+                allSoldTickets.add(newTicket);
+                JOptionPane.showMessageDialog(this, "Mua vé thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                updateCurrentUserView();
+                updateAdminStats();
+            } else {
+                JOptionPane.showMessageDialog(this, "Số dư không đủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage());
+        }
+    }
+
+    // ==========================================
+    // TAB 2: QUẢN TRỊ (GIỮ NGUYÊN)
+    // ==========================================
+    private JPanel createAdminPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel statsPanel = new JPanel(new GridLayout(1, 2));
+        statsPanel.setBorder(BorderFactory.createTitledBorder("Tổng Quan Doanh Thu"));
+        lblTotalRevenue = new JLabel("Doanh Thu: 0 VND");
+        lblTotalRevenue.setFont(new Font("Arial", Font.BOLD, 18));
+        lblTotalRevenue.setForeground(Color.RED);
+        lblTotalTickets = new JLabel("Tổng Vé Bán: 0");
+        lblTotalTickets.setFont(new Font("Arial", Font.BOLD, 18));
+        lblTotalTickets.setForeground(Color.BLUE);
+        statsPanel.add(lblTotalRevenue); statsPanel.add(lblTotalTickets);
+        String[] cols = {"Mã Vé", "Khách Hàng", "Loại Vé", "Giá", "Ngày Mua"};
+        adminModel = new DefaultTableModel(cols, 0);
+        adminTable = new JTable(adminModel);
+        JScrollPane scrollAdmin = new JScrollPane(adminTable);
+        scrollAdmin.setBorder(BorderFactory.createTitledBorder("Giao Dịch"));
+        JButton btnRefresh = new JButton("Làm Mới Dữ Liệu");
+        btnRefresh.addActionListener(e -> updateAdminStats());
+        panel.add(statsPanel, BorderLayout.NORTH);
+        panel.add(scrollAdmin, BorderLayout.CENTER);
+        panel.add(btnRefresh, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    private Customer getSelectedCustomer() {
+        int index = userSelectCombo.getSelectedIndex();
+        return (index >= 0 && index < customerList.size()) ? customerList.get(index) : null;
+    }
+
+    private void updateCurrentUserView() {
+        Customer c = getSelectedCustomer();
+        if (c != null) {
+            lblName.setText("Tên: " + c.getFullName());
+            lblType.setText(" | Loại: " + c.getType()); 
+            lblBalance.setText(" | Số Dư: " + currencyFormatter.format(c.getWalletBalance()) + " VND");
+            userHistoryModel.setRowCount(0);
+            List<Ticket> history = c.getTicketHistory();
+            for (int i = history.size() - 1; i >= 0; i--) {
+                Ticket t = history.get(i);
+                Object[] row = {t.getTicketId(), t.getType(), currencyFormatter.format(t.getPrice()), "ACTIVE"};
+                userHistoryModel.addRow(row);
+            }
+        }
+    }
+
+    private void updateAdminStats() {
+        adminModel.setRowCount(0);
+        double totalRev = 0;
+        for (Ticket t : allSoldTickets) {
+            totalRev += t.getPrice();
+            adminModel.addRow(new Object[]{t.getTicketId(), "Unknown", t.getType(), currencyFormatter.format(t.getPrice()), "Vừa xong"});
+        }
+        lblTotalRevenue.setText("Doanh Thu: " + currencyFormatter.format(totalRev) + " VND");
+        lblTotalTickets.setText("Tổng Vé Bán: " + allSoldTickets.size());
+    }
+}

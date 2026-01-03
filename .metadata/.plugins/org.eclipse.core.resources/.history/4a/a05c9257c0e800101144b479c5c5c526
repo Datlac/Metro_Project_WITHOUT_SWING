@@ -1,0 +1,98 @@
+package com.metro.business;
+
+import com.metro.enums.CustomerType;
+import com.metro.enums.TicketType;
+import java.util.HashMap;
+import java.util.Map;
+
+public class FareCalculator {
+
+    // Bảng giá theo số lượng Zone di chuyển (0 zone, 1 zone, 2 zone...)
+    // Index 0: Đi trong cùng 1 Zone (6.000)
+    // Index 1: Đi qua 1 Zone kế tiếp (8.000)
+    // ...
+    // Index 7: Đi từ Zone 1 đến Zone 8 (19.000)
+    private static final double[] ZONE_PRICES = {
+        6000.0,  // 0 zone diff (Nội vùng)
+        8000.0,  // 1 zone diff (Vd: Zone 1 -> Zone 2)
+        9000.0,  // 2 zone diff
+        11000.0, // 3 zone diff
+        13000.0, // 4 zone diff
+        15000.0, // 5 zone diff
+        17000.0, // 6 zone diff
+        19000.0  // 7 zone diff (Vd: Zone 1 -> Zone 8)
+    };
+    
+    // Giá vé định kỳ
+    public static final double PRICE_DAY_PASS = 90000.0;
+    public static final double PRICE_Three_DAY_PASS = 90000.0; // Vé 3 ngày
+    public static final double PRICE_MONTHLY_NORMAL = 200000.0; // Vé tháng thường
+    public static final double PRICE_MONTHLY_STUDENT = 150000.0; // Vé tháng HSSV
+
+    private static final Map<String, Integer> stationZones = new HashMap<>();
+
+    static {
+        
+        String[] zone1 = {"Bến Thành", "Nhà hát Thành Phố", "Ba Son", "Văn Thánh", "Tân Cảng", "Thảo Điền", "An Phú"};
+        for (String s : zone1) stationZones.put(s, 1);
+        
+        
+        stationZones.put("Rạch Chiếc", 2);
+        stationZones.put("Phước Long", 3);
+        stationZones.put("Bình Thái", 4);
+        stationZones.put("Thủ Đức", 5);
+        stationZones.put("Khu Công Nghệ Cao", 6);
+        stationZones.put("Đại học Quốc Gia", 7);
+        stationZones.put("Bến xe Suối Tiên", 8);
+    }
+
+    /**
+     * Tính giá vé lượt dựa trên trạm đi/đến
+     */
+    public static double calculateTripFare(String startStationName, String endStationName) {
+        // Chuẩn hóa tên (bỏ mã S1, S2 nếu có truyền vào)
+        String start = cleanStationName(startStationName);
+        String end = cleanStationName(endStationName);
+
+        if (!stationZones.containsKey(start) || !stationZones.containsKey(end)) {
+            return 6000.0; // Mặc định giá thấp nhất
+        }
+
+        int startZone = stationZones.get(start);
+        int endZone = stationZones.get(end);
+        
+        // Tính khoảng cách Zone (Trị tuyệt đối)
+        int zoneDiff = Math.abs(endZone - startZone);
+
+        // Đảm bảo không vượt quá bảng giá
+        if (zoneDiff >= ZONE_PRICES.length) {
+            zoneDiff = ZONE_PRICES.length - 1;
+        }
+
+        return ZONE_PRICES[zoneDiff];
+    }
+    
+    /**
+     * Tính giá vé tháng/ngày dựa trên loại khách
+     */
+    public static double calculatePassPrice(TicketType type, CustomerType customerType) {
+        if (type == TicketType.DAYPASS) {
+            return PRICE_Three_DAY_PASS; // Gán Vé Ngày thành Vé 3 Ngày như yêu cầu
+        }
+        if (type == TicketType.MONTHLYPASS) {
+            if (customerType == CustomerType.STUDENT) {
+                return PRICE_MONTHLY_STUDENT; // 150k
+            }
+            return PRICE_MONTHLY_NORMAL; // 200k (Khách thường)
+        }
+        return 0;
+    }
+
+    // Helper: Lấy tên trạm từ chuỗi "S1 - Ben Thanh" -> "Ben Thanh"
+    private static String cleanStationName(String rawName) {
+        if (rawName.contains(" - ")) {
+            return rawName.split(" - ")[1];
+        }
+        return rawName;
+    }
+}

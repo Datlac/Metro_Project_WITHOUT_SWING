@@ -1,0 +1,275 @@
+package com.metro.ui;
+
+import com.metro.business.Ticket;
+import com.metro.enums.TicketType;
+import com.metro.people.Customer;
+import com.metro.utils.DataLoader;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+import java.util.stream.Collectors;
+
+public class MetroSystemUI extends JFrame {
+
+    // --- DỮ LIỆU CHUNG (Model) ---
+    private List<Customer> customerList;
+    private List<Ticket> allSoldTickets; // Để thống kê tổng
+    
+    // --- UI COMPONENTS ---
+    // Tab Khách Hàng
+    private JComboBox<String> userSelectCombo;
+    private JLabel lblBalance;
+    private JLabel lblName;
+    private JTable userHistoryTable;
+    private DefaultTableModel userHistoryModel;
+    
+    // Tab Admin
+    private JLabel lblTotalRevenue;
+    private JLabel lblTotalTickets;
+    private JTable adminTable;
+    private DefaultTableModel adminModel;
+
+    public MetroSystemUI() {
+        // 1. Load Dữ liệu từ file
+        loadData();
+
+        // 2. Cấu hình cửa sổ chính
+        setTitle("Metro System - Quản Lý Tập Trung");
+        setSize(1000, 650);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        
+        // 3. Tạo TabbedPane chứa các màn hình
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Arial", Font.BOLD, 14));
+
+        tabbedPane.addTab("🛒 KHÁCH HÀNG (User Mode)", createCustomerPanel());
+        tabbedPane.addTab("📊 QUẢN TRỊ (Admin Mode)", createAdminPanel());
+
+        add(tabbedPane);
+    }
+
+    // --- LOGIC LOAD DỮ LIỆU ---
+    private void loadData() {
+        customerList = DataLoader.loadCustomersFromFile();
+        allSoldTickets = new ArrayList<>();
+        
+        // Gom tất cả vé đã có sẵn trong file của khách hàng vào danh sách chung để thống kê
+        for (Customer c : customerList) {
+            // Giả sử Customer có getter getTicketHistory() trả về List<Ticket>
+            // Nếu chưa có, bạn cần thêm vào class Customer. 
+            // Ở đây tôi dùng tạm logic mô phỏng nếu class Customer chưa update getter
+            // allSoldTickets.addAll(c.getTicketHistory()); 
+        }
+    }
+
+    // ==========================================
+    // TAB 1: GIAO DIỆN KHÁCH HÀNG
+    // ==========================================
+    private JPanel createCustomerPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // -- Phần trên: Chọn User & Thông tin ví --
+        JPanel topPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+        topPanel.setBorder(BorderFactory.createTitledBorder("Thông Tin Khách Hàng"));
+
+        JPanel selectPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        selectPanel.add(new JLabel("Chọn Khách Hàng (Giả lập Login): "));
+        
+        // Đổ dữ liệu vào ComboBox
+        Vector<String> customerNames = new Vector<>();
+        for (Customer c : customerList) {
+            customerNames.add(c.getCustomerId() + " - " + c.getFullName());
+        }
+        userSelectCombo = new JComboBox<>(customerNames);
+        userSelectCombo.setPreferredSize(new Dimension(300, 25));
+        selectPanel.add(userSelectCombo);
+
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        lblName = new JLabel("Tên: ---");
+        lblBalance = new JLabel(" | Số Dư: 0.0 VND");
+        lblBalance.setForeground(new Color(0, 100, 0));
+        lblBalance.setFont(new Font("Arial", Font.BOLD, 14));
+        infoPanel.add(lblName);
+        infoPanel.add(lblBalance);
+
+        topPanel.add(selectPanel);
+        topPanel.add(infoPanel);
+
+        // -- Phần giữa: Mua vé --
+        JPanel buyPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buyPanel.setBorder(BorderFactory.createTitledBorder("Mua Vé Mới"));
+        
+        JComboBox<TicketType> typeCombo = new JComboBox<>(TicketType.values());
+        JTextField txtPrice = new JTextField("20.0", 5);
+        JButton btnBuy = new JButton("MUA VÉ NGAY");
+        btnBuy.setBackground(new Color(30, 144, 255));
+        btnBuy.setForeground(Color.WHITE);
+
+        buyPanel.add(new JLabel("Loại Vé:"));
+        buyPanel.add(typeCombo);
+        buyPanel.add(new JLabel("Giá (Test):"));
+        buyPanel.add(txtPrice);
+        buyPanel.add(btnBuy);
+
+        // -- Phần dưới: Lịch sử của user đó --
+        String[] cols = {"Mã Vé", "Loại Vé", "Giá Tiền", "Trạng Thái"};
+        userHistoryModel = new DefaultTableModel(cols, 0);
+        userHistoryTable = new JTable(userHistoryModel);
+        JScrollPane scrollHistory = new JScrollPane(userHistoryTable);
+        scrollHistory.setBorder(BorderFactory.createTitledBorder("Lịch Sử Vé Của Khách"));
+
+        // -- Xử lý Sự kiện --
+        
+        // 1. Khi chọn user khác -> Cập nhật thông tin
+        userSelectCombo.addActionListener(e -> updateCurrentUserView());
+
+        // 2. Khi bấm Mua vé
+        btnBuy.addActionListener(e -> {
+            try {
+                Customer current = getSelectedCustomer();
+                if (current == null) return;
+
+                double price = Double.parseDouble(txtPrice.getText());
+                TicketType type = (TicketType) typeCombo.getSelectedItem();
+                String ticketId = "T-" + System.currentTimeMillis();
+
+                Ticket newTicket = new Ticket(ticketId, price, type);
+
+                // Logic trừ tiền
+                if (current.deductBalance(price)) {
+                    current.addTicket(newTicket);
+                    allSoldTickets.add(newTicket); // Thêm vào tổng doanh thu
+                    
+                    JOptionPane.showMessageDialog(this, "Mua vé thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Cập nhật lại giao diện
+                    updateCurrentUserView();
+                    updateAdminStats(); // Cập nhật luôn bên Admin
+                } else {
+                    JOptionPane.showMessageDialog(this, "Số dư không đủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Giá tiền không hợp lệ.", "Lỗi Input", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(buyPanel, BorderLayout.CENTER); // Center chứa panel mua vé (sẽ bị đẩy lên)
+        
+        // Để bảng lịch sử chiếm phần lớn diện tích, ta dùng panel phụ
+        JPanel centerContainer = new JPanel(new BorderLayout());
+        centerContainer.add(buyPanel, BorderLayout.NORTH);
+        centerContainer.add(scrollHistory, BorderLayout.CENTER);
+        
+        panel.add(centerContainer, BorderLayout.CENTER);
+
+        // Init view đầu tiên
+        if (customerList.size() > 0) {
+            userSelectCombo.setSelectedIndex(0);
+            updateCurrentUserView();
+        }
+
+        return panel;
+    }
+
+    // ==========================================
+    // TAB 2: GIAO DIỆN ADMIN (THỐNG KÊ)
+    // ==========================================
+    private JPanel createAdminPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // -- Info Stats --
+        JPanel statsPanel = new JPanel(new GridLayout(1, 2));
+        statsPanel.setBorder(BorderFactory.createTitledBorder("Tổng Quan Doanh Thu Hệ Thống"));
+        
+        lblTotalRevenue = new JLabel("Doanh Thu: 0.0 VND");
+        lblTotalRevenue.setFont(new Font("Arial", Font.BOLD, 18));
+        lblTotalRevenue.setForeground(Color.RED);
+        
+        lblTotalTickets = new JLabel("Tổng Vé Bán: 0");
+        lblTotalTickets.setFont(new Font("Arial", Font.BOLD, 18));
+        lblTotalTickets.setForeground(Color.BLUE);
+        
+        statsPanel.add(lblTotalRevenue);
+        statsPanel.add(lblTotalTickets);
+
+        // -- Table All Tickets --
+        String[] cols = {"Mã Vé", "Khách Hàng", "Loại Vé", "Giá", "Ngày Mua"};
+        adminModel = new DefaultTableModel(cols, 0);
+        adminTable = new JTable(adminModel);
+        JScrollPane scrollAdmin = new JScrollPane(adminTable);
+        scrollAdmin.setBorder(BorderFactory.createTitledBorder("Chi Tiết Giao Dịch Toàn Hệ Thống"));
+
+        // -- Button Refresh --
+        JButton btnRefresh = new JButton("Làm Mới Dữ Liệu");
+        btnRefresh.addActionListener(e -> updateAdminStats());
+
+        panel.add(statsPanel, BorderLayout.NORTH);
+        panel.add(scrollAdmin, BorderLayout.CENTER);
+        panel.add(btnRefresh, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    // --- HELPER METHODS ---
+
+    private Customer getSelectedCustomer() {
+        int index = userSelectCombo.getSelectedIndex();
+        if (index >= 0 && index < customerList.size()) {
+            return customerList.get(index);
+        }
+        return null;
+    }
+
+    private void updateCurrentUserView() {
+        Customer c = getSelectedCustomer();
+        if (c != null) {
+            lblName.setText("Tên: " + c.getFullName());
+            DecimalFormat df = new DecimalFormat("#,###.0");
+            lblBalance.setText(" | Số Dư: " + df.format(c.getWalletBalance()) + " VND");
+
+            // Cập nhật bảng lịch sử riêng của khách
+            userHistoryModel.setRowCount(0);
+            
+            // LƯU Ý: Cần có getter getTicketHistory() trong class Customer
+            // Ở đây tôi dùng tạm logic giả định nếu chưa có getter:
+            // List<Ticket> history = c.getTicketHistory();
+            // Nhưng vì chưa thấy code Customer mới nhất, tôi sẽ bỏ qua phần load history cũ 
+            // và chỉ hiển thị vé vừa mua trong phiên này (allSoldTickets lọc theo user).
+            
+            // Nếu bạn muốn hiển thị vé cũ từ file text, hãy đảm bảo Customer có:
+            // public List<Ticket> getTicketHistory() { return ticketHistory; }
+        }
+    }
+
+    private void updateAdminStats() {
+        adminModel.setRowCount(0);
+        double totalRev = 0;
+        
+        // Duyệt qua tất cả vé vừa bán (trong phiên làm việc này)
+        // Nếu muốn load cả vé từ file text cũ, cần logic phức tạp hơn chút ở loadData()
+        for (Ticket t : allSoldTickets) {
+            totalRev += t.getPrice();
+            Object[] row = {
+                t.getTicketId(),
+                "Unknown", // Ticket hiện tại chưa lưu ID khách hàng sở hữu
+                t.toString(), // Hoặc t.getType()
+                t.getPrice(),
+                "Vừa xong"
+            };
+            adminModel.addRow(row);
+        }
+
+        DecimalFormat df = new DecimalFormat("#,###.0");
+        lblTotalRevenue.setText("Doanh Thu: " + df.format(totalRev) + " VND");
+        lblTotalTickets.setText("Tổng Vé Bán: " + allSoldTickets.size());
+    }
+}
