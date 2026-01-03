@@ -1,3 +1,0 @@
-INDEX VERSION 1.134+G:\Metro_Project_WITHOUT_SWING-main\Metro_Project_WITHOUT_SWING-main\.metadata\.plugins\org.eclipse.jdt.core
-3145078063.index
-1865797976.index

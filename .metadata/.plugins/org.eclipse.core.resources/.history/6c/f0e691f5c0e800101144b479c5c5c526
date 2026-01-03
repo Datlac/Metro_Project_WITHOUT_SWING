@@ -1,5 +1,0 @@
-package com.metro.enums;
-
-public enum TicketType {
-	SINGLERIDE, Three_DAY_PASS, DAYPASS, MONTHLYPASS, STUDENTPASS, SENIORPASS
-}
