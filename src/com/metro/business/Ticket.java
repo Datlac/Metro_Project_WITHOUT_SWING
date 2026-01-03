@@ -36,4 +36,7 @@ public class Ticket {
     public String toString() {
         return "Ticket[ID=" + ticketId + ", Price=" + price + ", Status=" + status + "]";
     }
+    
+    public TicketType getType() { return type; } 
+    public TicketStatus getStatus() { return status; }
 }

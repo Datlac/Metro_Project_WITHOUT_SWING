@@ -14,6 +14,38 @@ public class Shift {
         this.endTime = endTime;
         this.notes = notes;
     }
+
+	public String getShiftCode() {
+		return shiftCode;
+	}
+
+	public void setShiftCode(String shiftCode) {
+		this.shiftCode = shiftCode;
+	}
+
+	public LocalTime getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(LocalTime startTime) {
+		this.startTime = startTime;
+	}
+
+	public LocalTime getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(LocalTime endTime) {
+		this.endTime = endTime;
+	}
+
+	public String getNotes() {
+		return notes;
+	}
+
+	public void setNotes(String notes) {
+		this.notes = notes;
+	}
     
-    // Getters...
+    
 }
