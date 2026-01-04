@@ -5,21 +5,20 @@ import java.time.LocalDate;
 import java.util.Date;
 
 public class RegisteredCustomer extends Customer {
-    private String username;
-    private String passwordHash;
-    private Date registrationDate;
-    private Account account; // Quan hệ với Account
+	private String username;
+	private String passwordHash;
+	private Date registrationDate;
+	private Account account; 
 
-    public RegisteredCustomer(String fullName, String idNumber, LocalDate dob, String phoneNumber,
-                              String customerId, int walletBalance, 
-                              String username, String passwordHash) {
-        super(fullName, idNumber, dob, phoneNumber, customerId, walletBalance, CustomerType.ADULT);
-        this.username = username;
-        this.passwordHash = passwordHash;
-        this.registrationDate = new Date();
-    }
-    
-    public String getUsername() {
+	public RegisteredCustomer(String fullName, String idNumber, LocalDate dob, String phoneNumber, String customerId,
+			int walletBalance, String username, String passwordHash) {
+		super(fullName, idNumber, dob, phoneNumber, customerId, walletBalance, CustomerType.ADULT);
+		this.username = username;
+		this.passwordHash = passwordHash;
+		this.registrationDate = new Date();
+	}
+
+	public String getUsername() {
 		return username;
 	}
 
@@ -52,6 +51,6 @@ public class RegisteredCustomer extends Customer {
 	}
 
 	public void linkAccount(Account account) {
-        this.account = account;
-    }
+		this.account = account;
+	}
 }

@@ -1,22 +1,22 @@
 package com.metro.people;
 
-import com.metro.enums.AccountStatus; // Cần tạo Enum này nếu chưa có
+import com.metro.enums.AccountStatus;
 
 public class Account {
-    private String email;
-    private boolean isEmailVerified;
-    private String lastLoginIP;
-    private AccountStatus status;
-    private String password; // Lưu ý bảo mật thực tế cần hash
+	private String email;
+	private boolean isEmailVerified;
+	private String lastLoginIP;
+	private AccountStatus status;
+	private String password;
 
-    public Account(String email, String password) {
-        this.email = email;
-        this.password = password;
-        this.status = AccountStatus.ACTIVE; // Giả sử đã có Enum ACTIVE
-        this.isEmailVerified = false;
-    }
-    
-    public String getEmail() {
+	public Account(String email, String password) {
+		this.email = email;
+		this.password = password;
+		this.status = AccountStatus.ACTIVE;
+		this.isEmailVerified = false;
+	}
+
+	public String getEmail() {
 		return email;
 	}
 
@@ -57,14 +57,14 @@ public class Account {
 	}
 
 	public boolean changePassword(String oldPass, String newPass) {
-        if (this.password.equals(oldPass)) {
-            this.password = newPass;
-            return true;
-        }
-        return false;
-    }
+		if (this.password.equals(oldPass)) {
+			this.password = newPass;
+			return true;
+		}
+		return false;
+	}
 
-    public void recoverAccount() {
-        System.out.println("Recovery email sent to " + email);
-    }
+	public void recoverAccount() {
+		System.out.println("Recovery email sent to " + email);
+	}
 }

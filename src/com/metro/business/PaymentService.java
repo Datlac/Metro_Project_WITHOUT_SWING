@@ -4,43 +4,47 @@ import com.metro.people.Customer;
 
 public class PaymentService {
 
-    /**
-     * Xử lý thanh toán bằng Ví điện tử (Wallet)
-     * @param customer Khách hàng
-     * @param amount Số tiền cần trả
-     * @return true nếu thành công, false nếu thiếu tiền
-     */
-    public static boolean processWalletPayment(Customer customer, double amount) {
-        if (customer.deductBalance(amount)) {
-            System.out.println("[Payment] Trừ ví thành công: -" + amount + " VND. Số dư mới: " + customer.getWalletBalance());
-            return true;
-        } else {
-            System.out.println("[Payment-Error] Số dư không đủ! (Có: " + customer.getWalletBalance() + ", Cần: " + amount + ")");
-            return false;
-        }
-    }
+	/**
+	 * Xử lý thanh toán bằng Ví điện tử (Wallet)
+	 * 
+	 * @param customer Khách hàng
+	 * @param amount   Số tiền cần trả
+	 * @return true nếu thành công, false nếu thiếu tiền
+	 */
+	public static boolean processWalletPayment(Customer customer, double amount) {
+		if (customer.deductBalance(amount)) {
+			System.out.println(
+					"[Payment] Trừ ví thành công: -" + amount + " VND. Số dư mới: " + customer.getWalletBalance());
+			return true;
+		} else {
+			System.out.println(
+					"[Payment-Error] Số dư không đủ! (Có: " + customer.getWalletBalance() + ", Cần: " + amount + ")");
+			return false;
+		}
+	}
 
-    /**
-     * Xử lý thanh toán bằng Tiền mặt (Cash) tại máy bán vé
-     * Task 2.3: Calculate Change
-     * @param cashGiven Số tiền khách đưa
-     * @param ticketPrice Giá vé
-     * @return Số tiền thối lại (trả về -1 nếu khách đưa thiếu tiền)
-     */
-    public static double handleCashPayment(double cashGiven, double ticketPrice) {
-        if (cashGiven < ticketPrice) {
-            System.out.println("[Payment-Error] Khách đưa thiếu tiền! (Đưa: " + cashGiven + ", Giá: " + ticketPrice + ")");
-            return -1.0; 
-        }
+	/**
+	 * Xử lý thanh toán bằng Tiền mặt (Cash) tại máy bán vé Change
+	 * 
+	 * @param cashGiven   Số tiền khách đưa
+	 * @param ticketPrice Giá vé
+	 * @return Số tiền thối lại (trả về -1 nếu khách đưa thiếu tiền)
+	 */
+	public static double handleCashPayment(double cashGiven, double ticketPrice) {
+		if (cashGiven < ticketPrice) {
+			System.out.println(
+					"[Payment-Error] Khách đưa thiếu tiền! (Đưa: " + cashGiven + ", Giá: " + ticketPrice + ")");
+			return -1.0;
+		}
 
-        double change = cashGiven - ticketPrice;
-        
-        System.out.println("--- HÓA ĐƠN TIỀN MẶT ---");
-        System.out.println("Giá vé:      " + ticketPrice);
-        System.out.println("Khách đưa:   " + cashGiven);
-        System.out.println("Tiền thối:   " + change);
-        System.out.println("------------------------");
-        
-        return change;
-    }
+		double change = cashGiven - ticketPrice;
+
+		System.out.println("--- HÓA ĐƠN TIỀN MẶT ---");
+		System.out.println("Giá vé:      " + ticketPrice);
+		System.out.println("Khách đưa:   " + cashGiven);
+		System.out.println("Tiền thối:   " + change);
+		System.out.println("------------------------");
+
+		return change;
+	}
 }
