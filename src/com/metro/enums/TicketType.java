@@ -1,9 +1,8 @@
 package com.metro.enums;
 
 public enum TicketType {
-
-	SINGLERIDE, // Vé lượt
-	DAYPASS, // Vé 1 ngày (Mới)
-	THREEDAYPASS, // Vé 3 ngày
-	MONTHLYPASS, // Vé tháng
+    SINGLERIDE,     
+    DAYPASS,       
+    THREEDAYPASS,   
+    MONTHLYPASS     
 }

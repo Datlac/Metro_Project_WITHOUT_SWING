@@ -38,28 +38,42 @@ public class Line {
     // --- CÁC GETTER CẦN THIẾT (Đã bổ sung getStations) ---
 
     // Phương thức này dùng cho RoutePlanner để duyệt qua các trạm
-    public List<Station> getStations() {
-        return stations;
-    }
-
-    public String getLineCode() {
-        return lineCode;
-    }
-
-    public String getLineName() {
-        return lineName;
-    }
-
-    public LineStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(LineStatus status) {
-        this.status = status;
-    }
+    
     
     @Override
     public String toString() {
         return lineName + " (" + lineCode + ") - " + stations.size() + " stations";
     }
+
+	public String getLineCode() {
+		return lineCode;
+	}
+
+	public void setLineCode(String lineCode) {
+		this.lineCode = lineCode;
+	}
+
+	public String getLineName() {
+		return lineName;
+	}
+
+	public void setLineName(String lineName) {
+		this.lineName = lineName;
+	}
+
+	public LineStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(LineStatus status) {
+		this.status = status;
+	}
+
+	public List<Station> getStations() {
+		return stations;
+	}
+
+	public void setStations(List<Station> stations) {
+		this.stations = stations;
+	}
 }
