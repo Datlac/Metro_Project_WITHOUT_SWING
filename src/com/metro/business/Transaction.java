@@ -12,8 +12,58 @@ public class Transaction {
         this.paymentMethod = paymentMethod;
         this.isSuccess = true;
     }
+    
+    
+    
+    public String getTransactionId() {
+		return transactionId;
+	}
 
-    public void generateInvoice() {
+
+
+	public void setTransactionId(String transactionId) {
+		this.transactionId = transactionId;
+	}
+
+
+
+	public double getAmount() {
+		return amount;
+	}
+
+
+
+	public void setAmount(double amount) {
+		this.amount = amount;
+	}
+
+
+
+	public String getPaymentMethod() {
+		return paymentMethod;
+	}
+
+
+
+	public void setPaymentMethod(String paymentMethod) {
+		this.paymentMethod = paymentMethod;
+	}
+
+
+
+	public boolean isSuccess() {
+		return isSuccess;
+	}
+
+
+
+	public void setSuccess(boolean isSuccess) {
+		this.isSuccess = isSuccess;
+	}
+
+
+
+	public void generateInvoice() {
         System.out.println("Invoice [" + transactionId + "]: " + amount + " via " + paymentMethod);
     }
 }

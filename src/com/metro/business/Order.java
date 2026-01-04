@@ -19,8 +19,54 @@ public class Order {
         this.status = OrderStatus.PENDING;
         this.tickets = new ArrayList<>();
     }
+    
+    
+    public String getCustomerId() {
+		return customerId;
+	}
 
-    public void addTicket(Ticket t) {
+
+	public void setCustomerId(String customerId) {
+		this.customerId = customerId;
+	}
+
+
+	public LocalDate getCreatedDate() {
+		return createdDate;
+	}
+
+
+	public void setCreatedDate(LocalDate createdDate) {
+		this.createdDate = createdDate;
+	}
+
+
+	public OrderStatus getStatus() {
+		return status;
+	}
+
+
+	public void setStatus(OrderStatus status) {
+		this.status = status;
+	}
+
+
+	public List<Ticket> getTickets() {
+		return tickets;
+	}
+
+
+	public void setTickets(List<Ticket> tickets) {
+		this.tickets = tickets;
+	}
+
+
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+
+
+	public void addTicket(Ticket t) {
         tickets.add(t);
     }
 

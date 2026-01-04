@@ -12,8 +12,34 @@ public class AutoGate extends Device {
         this.gateId = gateId;
         this.status = GateStatus.CLOSED;
     }
+    
+    
+    
+    public String getGateId() {
+		return gateId;
+	}
 
-    public void scanTicket(Ticket ticket) {
+
+
+	public void setGateId(String gateId) {
+		this.gateId = gateId;
+	}
+
+
+
+	public GateStatus getStatus() {
+		return status;
+	}
+
+
+
+	public void setStatus(GateStatus status) {
+		this.status = status;
+	}
+
+
+
+	public void scanTicket(Ticket ticket) {
         if (ticket.isValid()) {
             this.status = GateStatus.OPEN;
             System.out.println("[Gate " + gateId + "] Ticket " + ticket.getTicketId() + " accepted. OPEN.");

@@ -15,8 +15,48 @@ public class Account {
         this.status = AccountStatus.ACTIVE; // Giả sử đã có Enum ACTIVE
         this.isEmailVerified = false;
     }
+    
+    public String getEmail() {
+		return email;
+	}
 
-    public boolean changePassword(String oldPass, String newPass) {
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public boolean isEmailVerified() {
+		return isEmailVerified;
+	}
+
+	public void setEmailVerified(boolean isEmailVerified) {
+		this.isEmailVerified = isEmailVerified;
+	}
+
+	public String getLastLoginIP() {
+		return lastLoginIP;
+	}
+
+	public void setLastLoginIP(String lastLoginIP) {
+		this.lastLoginIP = lastLoginIP;
+	}
+
+	public AccountStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(AccountStatus status) {
+		this.status = status;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public boolean changePassword(String oldPass, String newPass) {
         if (this.password.equals(oldPass)) {
             this.password = newPass;
             return true;

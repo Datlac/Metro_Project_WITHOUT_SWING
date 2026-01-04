@@ -11,5 +11,31 @@ public class Locomotive {
         this.manufacturer = manufacturer;
     }
     
-    public String getLocomotiveId() { return locomotiveId; }
+    
+    public double getPowerKW() {
+		return powerKW;
+	}
+
+
+	public void setPowerKW(double powerKW) {
+		this.powerKW = powerKW;
+	}
+
+
+	public String getManufacturer() {
+		return manufacturer;
+	}
+
+
+	public void setManufacturer(String manufacturer) {
+		this.manufacturer = manufacturer;
+	}
+
+
+	public void setLocomotiveId(String locomotiveId) {
+		this.locomotiveId = locomotiveId;
+	}
+
+
+	public String getLocomotiveId() { return locomotiveId; }
 }

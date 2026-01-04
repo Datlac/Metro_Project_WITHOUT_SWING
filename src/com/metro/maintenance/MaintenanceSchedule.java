@@ -15,8 +15,40 @@ public class MaintenanceSchedule {
         this.estimatedDurationHours = duration;
         this.priority = priority;
     }
+    
+    public String getScheduleId() {
+		return scheduleId;
+	}
 
-    public boolean isOverdue() {
+	public void setScheduleId(String scheduleId) {
+		this.scheduleId = scheduleId;
+	}
+
+	public LocalDate getPlannedDate() {
+		return plannedDate;
+	}
+
+	public void setPlannedDate(LocalDate plannedDate) {
+		this.plannedDate = plannedDate;
+	}
+
+	public int getEstimatedDurationHours() {
+		return estimatedDurationHours;
+	}
+
+	public void setEstimatedDurationHours(int estimatedDurationHours) {
+		this.estimatedDurationHours = estimatedDurationHours;
+	}
+
+	public PriorityLevel getPriority() {
+		return priority;
+	}
+
+	public void setPriority(PriorityLevel priority) {
+		this.priority = priority;
+	}
+
+	public boolean isOverdue() {
         return LocalDate.now().isAfter(plannedDate);
     }
 

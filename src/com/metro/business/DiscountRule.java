@@ -12,8 +12,34 @@ public class DiscountRule {
         this.appliedTo = appliedTo;
         this.discountPercentage = discountPercentage;
     }
+    
+    
+    public String getRuleCode() {
+		return ruleCode;
+	}
 
-    public double calculateDiscount(double originalPrice) {
+
+	public void setRuleCode(String ruleCode) {
+		this.ruleCode = ruleCode;
+	}
+
+
+	public double getDiscountPercentage() {
+		return discountPercentage;
+	}
+
+
+	public void setDiscountPercentage(double discountPercentage) {
+		this.discountPercentage = discountPercentage;
+	}
+
+
+	public void setAppliedTo(CustomerType appliedTo) {
+		this.appliedTo = appliedTo;
+	}
+
+
+	public double calculateDiscount(double originalPrice) {
         return originalPrice * discountPercentage;
     }
     

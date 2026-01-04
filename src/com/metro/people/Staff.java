@@ -16,8 +16,28 @@ public class Staff extends Person {
         this.jobTitle = jobTitle;
         this.hireDate = LocalDate.now();
     }
-
+    
     public String getIdStaff() { return idStaff; }
-    public String getDepartment() { return department; }
+    public LocalDate getHireDate() {
+		return hireDate;
+	}
+
+	public void setHireDate(LocalDate hireDate) {
+		this.hireDate = hireDate;
+	}
+
+	public void setIdStaff(String idStaff) {
+		this.idStaff = idStaff;
+	}
+
+	public void setDepartment(String department) {
+		this.department = department;
+	}
+
+	public void setJobTitle(String jobTitle) {
+		this.jobTitle = jobTitle;
+	}
+
+	public String getDepartment() { return department; }
     public String getJobTitle() { return jobTitle; }
 }

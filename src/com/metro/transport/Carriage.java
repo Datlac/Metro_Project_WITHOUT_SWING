@@ -12,8 +12,58 @@ public class Carriage {
         this.standingCapacity = standingCapacity;
         this.hasWifi = true;
     }
+    
+    
+    
+    public String getCarriageId() {
+		return carriageId;
+	}
 
-    public int getTotalCapacity() {
+
+
+	public void setCarriageId(String carriageId) {
+		this.carriageId = carriageId;
+	}
+
+
+
+	public int getSeatCapacity() {
+		return seatCapacity;
+	}
+
+
+
+	public void setSeatCapacity(int seatCapacity) {
+		this.seatCapacity = seatCapacity;
+	}
+
+
+
+	public int getStandingCapacity() {
+		return standingCapacity;
+	}
+
+
+
+	public void setStandingCapacity(int standingCapacity) {
+		this.standingCapacity = standingCapacity;
+	}
+
+
+
+	public boolean isHasWifi() {
+		return hasWifi;
+	}
+
+
+
+	public void setHasWifi(boolean hasWifi) {
+		this.hasWifi = hasWifi;
+	}
+
+
+
+	public int getTotalCapacity() {
         return seatCapacity + standingCapacity;
     }
 }

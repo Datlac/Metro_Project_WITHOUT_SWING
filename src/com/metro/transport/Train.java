@@ -9,6 +9,22 @@ public class Train {
         this.capacity = capacity;
     }
     
-    @Override
+    public String getTrainId() {
+		return trainId;
+	}
+
+	public void setTrainId(String trainId) {
+		this.trainId = trainId;
+	}
+
+	public int getCapacity() {
+		return capacity;
+	}
+
+	public void setCapacity(int capacity) {
+		this.capacity = capacity;
+	}
+
+	@Override
     public String toString() { return "Train " + trainId; }
 }

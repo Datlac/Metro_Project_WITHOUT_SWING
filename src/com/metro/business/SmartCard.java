@@ -15,8 +15,58 @@ public class SmartCard {
         this.expiryDate = LocalDate.now().plusYears(2);
         this.status = AccountStatus.ACTIVE;
     }
+    
+    
+    
+    public String getCardNumber() {
+		return cardNumber;
+	}
 
-    public void topUp(double amount) {
+
+
+	public void setCardNumber(String cardNumber) {
+		this.cardNumber = cardNumber;
+	}
+
+
+
+	public double getBalance() {
+		return balance;
+	}
+
+
+
+	public void setBalance(double balance) {
+		this.balance = balance;
+	}
+
+
+
+	public LocalDate getExpiryDate() {
+		return expiryDate;
+	}
+
+
+
+	public void setExpiryDate(LocalDate expiryDate) {
+		this.expiryDate = expiryDate;
+	}
+
+
+
+	public AccountStatus getStatus() {
+		return status;
+	}
+
+
+
+	public void setStatus(AccountStatus status) {
+		this.status = status;
+	}
+
+
+
+	public void topUp(double amount) {
         if (amount > 0) {
             this.balance += amount;
             System.out.println("Card " + cardNumber + " topped up: " + amount);

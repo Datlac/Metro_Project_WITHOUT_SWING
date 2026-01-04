@@ -19,5 +19,37 @@ public class Route {
     
     // Getters
     public String getRouteId() { return routeId; }
-    public String getDescription() { return description; }
+    public Station getStartStation() {
+		return startStation;
+	}
+
+	public void setStartStation(Station startStation) {
+		this.startStation = startStation;
+	}
+
+	public Station getEndStation() {
+		return endStation;
+	}
+
+	public void setEndStation(Station endStation) {
+		this.endStation = endStation;
+	}
+
+	public List<Station> getStops() {
+		return stops;
+	}
+
+	public void setStops(List<Station> stops) {
+		this.stops = stops;
+	}
+
+	public void setRouteId(String routeId) {
+		this.routeId = routeId;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public String getDescription() { return description; }
 }

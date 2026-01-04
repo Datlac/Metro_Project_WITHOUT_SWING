@@ -16,8 +16,48 @@ public class StationLog {
         this.details = details;
         this.timestamp = LocalDateTime.now();
     }
+    
+    public String getLogId() {
+		return logId;
+	}
 
-    @Override
+	public void setLogId(String logId) {
+		this.logId = logId;
+	}
+
+	public LocalDateTime getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(LocalDateTime timestamp) {
+		this.timestamp = timestamp;
+	}
+
+	public String getStationId() {
+		return stationId;
+	}
+
+	public void setStationId(String stationId) {
+		this.stationId = stationId;
+	}
+
+	public String getDetails() {
+		return details;
+	}
+
+	public void setDetails(String details) {
+		this.details = details;
+	}
+
+	public String getEventType() {
+		return eventType;
+	}
+
+	public void setEventType(String eventType) {
+		this.eventType = eventType;
+	}
+
+	@Override
     public String toString() {
         return String.format("[%s] Station: %s | Event: %s | %s", timestamp, stationId, eventType, details);
     }
